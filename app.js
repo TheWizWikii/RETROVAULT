@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem('aor_'+k))??d}catch{return d}},set:(k,v)=>localStorage.setItem('aor_'+k,JSON.stringify(v))};
-const state={watchlist:store.get('watchlist',APP_CONFIG.defaultWatchlist),portfolio:store.get('portfolio',APP_CONFIG.defaultPortfolio),journal:store.get('journal',[]),settings:store.get('settings',{apiKey:'',interval:0}),market:new Map(),fearHistory:[],btcHistory:[],timer:null,chartRange:0};
+const state={watchlist:store.get('watchlist',APP_CONFIG.defaultWatchlist),portfolio:store.get('portfolio',APP_CONFIG.defaultPortfolio),journal:store.get('journal',[]),settings:store.get('settings',{apiKey:'',interval:0}),market:new Map(),fearHistory:[],btcHistory:[],timer:null,chartRange:0,providers:{market:'Caché',fear:'Caché',btc:'Caché'}};
 const cache={market:store.get('marketCache',[]),fear:store.get('fearCache',[]),btc:store.get('btcCache',[])};
 let lastRefreshAt=0;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -14,20 +14,32 @@ function coinIds(){return [...new Set([...APP_CONFIG.knownUniverse,...state.watc
 async function fetchMarkets(){
   const ids=coinIds(),chunks=[];for(let i=0;i<ids.length;i+=120)chunks.push(ids.slice(i,i+120));
   const all=[];
-  for(const chunk of chunks){
-    const url=`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(chunk.join(','))}&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h`;
-    const r=await fetchWithRetry(url,{headers:apiHeaders()},1);all.push(...await r.json());
-    if(chunks.length>1)await sleep(350);
+  try{
+    for(const chunk of chunks){
+      const url=`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(chunk.join(','))}&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h`;
+      const r=await fetchWithRetry(url,{headers:apiHeaders()},1);all.push(...await r.json());
+      if(chunks.length>1)await sleep(350);
+    }
+    state.market=new Map(all.map(c=>[c.id,c]));state.providers.market='CoinGecko';store.set('marketCache',all);return all;
+  }catch(err){
+    // Respaldo de BTC desde Binance. Para el resto conservamos la última caché,
+    // ya que los exchanges no ofrecen market cap ni IDs CoinGecko homogéneos.
+    try{
+      const r=await fetchWithRetry('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT',{},0);
+      const b=await r.json();const cached=cache.market.slice();
+      const btc={id:'bitcoin',symbol:'btc',name:'Bitcoin',current_price:+b.lastPrice,price_change_percentage_24h:+b.priceChangePercent,total_volume:+b.quoteVolume,image:'https://assets.coingecko.com/coins/images/1/large/bitcoin.png'};
+      const i=cached.findIndex(x=>x.id==='bitcoin');if(i>=0)cached[i]={...cached[i],...btc};else cached.push(btc);
+      state.market=new Map(cached.map(c=>[c.id,c]));state.providers.market='Binance + caché';store.set('marketCache',cached);return cached;
+    }catch{state.providers.market='Caché';throw err}
   }
-  state.market=new Map(all.map(c=>[c.id,c]));store.set('marketCache',all);return all;
 }
-async function fetchFear(){const r=await fetchWithRetry('https://api.alternative.me/fng/?limit=0&format=json',{},1);const d=await r.json();state.fearHistory=(d.data||[]).map(x=>({value:+x.value,label:x.value_classification,ts:+x.timestamp*1000})).sort((a,b)=>a.ts-b.ts);store.set('fearCache',state.fearHistory);return state.fearHistory}
+async function fetchFear(){const r=await fetchWithRetry('https://api.alternative.me/fng/?limit=0&format=json',{},1);const d=await r.json();state.fearHistory=(d.data||[]).map(x=>({value:+x.value,label:x.value_classification,ts:+x.timestamp*1000})).sort((a,b)=>a.ts-b.ts);state.providers.fear='Alternative.me';store.set('fearCache',state.fearHistory);return state.fearHistory}
 async function fetchBtcHistory(){
   const status=$('#btcChartStatus'); if(status)status.textContent='Cargando BTC…';
   try{
     const r=await fetch('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=max&interval=daily',{headers:apiHeaders()});
     if(!r.ok)throw new Error('CoinGecko '+r.status);
-    const d=await r.json(); state.btcHistory=(d.prices||[]).map(([ts,p])=>({ts,price:+p})).filter(x=>Number.isFinite(x.price));store.set('btcCache',state.btcHistory);
+    const d=await r.json(); state.btcHistory=(d.prices||[]).map(([ts,p])=>({ts,price:+p})).filter(x=>Number.isFinite(x.price));state.providers.btc='CoinGecko';store.set('btcCache',state.btcHistory);
   }catch(e){
     try{
       const all=[]; let start=Date.UTC(2018,0,1), guard=0;
@@ -38,7 +50,7 @@ async function fetchBtcHistory(){
         for(const row of rows)all.push({ts:+row[0],price:+row[4]});
         const next=+rows[rows.length-1][0]+864e5; if(next<=start)break; start=next;
       }
-      state.btcHistory=all;store.set('btcCache',state.btcHistory);
+      state.btcHistory=all;state.providers.btc='Binance';store.set('btcCache',state.btcHistory);
     }catch{state.btcHistory=[]}
   }
   if(status)status.textContent=state.btcHistory.length?'':'Precio BTC no disponible';
@@ -47,19 +59,32 @@ function fearClass(v){if(v<=24)return'Miedo extremo';if(v<=44)return'Miedo';if(v
 function fearTone(v){if(v<=24)return'extreme-fear';if(v<=44)return'fear';if(v<=55)return'neutral';if(v<=74)return'greed';return'extreme-greed'}
 function updateGauge(){const h=state.fearHistory,cur=h[h.length-1];if(!cur)return;const v=Math.max(0,Math.min(100,cur.value)),status=$('#fearStatus');$('#fearValue').textContent=v;$('#fearLabel').textContent=fearClass(v);status.className=`fear-status ${fearTone(v)}`;$('#fearUpdated').textContent=new Date(cur.ts).toLocaleDateString('es-ES');$('#gaugeNeedle').style.transform=`rotate(${-90+v*1.8}deg)`;$('#gaugeProgress').style.strokeDashoffset=0;const itemFromDays=d=>h.reduce((best,x)=>Math.abs(x.ts-(Date.now()-d*864e5))<Math.abs((best?.ts||0)-(Date.now()-d*864e5))?x:best,null);[['fearYesterday',1],['fearWeek',7],['fearMonth',30]].forEach(([id,d])=>{const x=itemFromDays(d);$('#'+id).textContent=x?`${x.value} · ${fearClass(x.value)}`:'—'})}
 function drawFearChart(){
-  const cv=$('#fearChart'); if(!cv)return; const ctx=cv.getContext('2d'),dpr=devicePixelRatio||1,w=Math.max(320,cv.clientWidth),h=300;
+  const cv=$('#fearChart');if(!cv)return;const ctx=cv.getContext('2d'),dpr=devicePixelRatio||1,w=Math.max(360,cv.clientWidth),h=310;
   cv.width=w*dpr;cv.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
-  const cutoff=state.chartRange?Date.now()-state.chartRange*864e5:0,f=state.fearHistory.filter(x=>x.ts>=cutoff); if(f.length<2)return;
-  const minTs=f[0].ts,maxTs=f[f.length-1].ts,left=48,right=78,top=20,bottom=32,plotW=w-left-right,plotH=h-top-bottom;
+  const cutoff=state.chartRange?Date.now()-state.chartRange*864e5:0,f=state.fearHistory.filter(x=>x.ts>=cutoff);if(f.length<2)return;
+  const minTs=f[0].ts,maxTs=f[f.length-1].ts,left=56,right=112,top=20,bottom=36,plotW=w-left-right,plotH=h-top-bottom;
   const x=ts=>left+(ts-minTs)/(maxTs-minTs||1)*plotW,yF=v=>top+(100-v)/100*plotH;
-  const zones=[{a:75,b:100,c:'rgba(45,211,140,.10)',t:'Codicia extrema'},{a:55,b:75,c:'rgba(163,230,53,.075)',t:'Codicia'},{a:45,b:55,c:'rgba(74,168,255,.11)',t:'Neutral'},{a:25,b:45,c:'rgba(255,154,61,.07)',t:'Miedo'},{a:0,b:25,c:'rgba(255,83,110,.11)',t:'Miedo extremo'}];
-  zones.forEach(z=>{const y1=yF(z.b),y2=yF(z.a);ctx.fillStyle=z.c;ctx.fillRect(left,y1,plotW,y2-y1);ctx.fillStyle='#8993a6';ctx.font='10px Inter';ctx.textAlign='right';ctx.fillText(z.t,w-7,(y1+y2)/2+3)});
-  ctx.textAlign='left';ctx.strokeStyle='#323a4c';ctx.lineWidth=1;for(let i=0;i<=4;i++){const val=100-i*25,Y=yF(val);ctx.beginPath();ctx.moveTo(left,Y);ctx.lineTo(left+plotW,Y);ctx.stroke();ctx.fillStyle='#8892a5';ctx.font='11px Inter';ctx.fillText(String(val),8,Y+4)}
+  const zones=[
+    {a:75,b:100,c:'rgba(28,197,122,.10)',rail:'#17c784',t:'Codicia extrema'},
+    {a:55,b:75,c:'rgba(132,204,22,.075)',rail:'#84cc16',t:'Codicia'},
+    {a:45,b:55,c:'rgba(69,167,255,.10)',rail:'#45a7ff',t:'Neutral'},
+    {a:25,b:45,c:'rgba(255,159,67,.075)',rail:'#ff9f43',t:'Miedo'},
+    {a:0,b:25,c:'rgba(255,56,89,.11)',rail:'#ff3859',t:'Miedo extremo'}
+  ];
+  zones.forEach(z=>{const y1=yF(z.b),y2=yF(z.a);ctx.fillStyle=z.c;ctx.fillRect(left,y1,plotW,y2-y1);ctx.fillStyle=z.rail;ctx.fillRect(left-5,y1,4,y2-y1);ctx.fillRect(left+plotW+1,y1,4,y2-y1);ctx.fillStyle=z.rail;ctx.globalAlpha=.9;ctx.font='10px Inter';ctx.textAlign='left';ctx.fillText(z.t,left+plotW+12,(y1+y2)/2+3);ctx.globalAlpha=1});
+  ctx.strokeStyle='#323a4c';ctx.lineWidth=1;ctx.textAlign='right';for(let i=0;i<=4;i++){const val=100-i*25,Y=yF(val);ctx.beginPath();ctx.moveTo(left,Y);ctx.lineTo(left+plotW,Y);ctx.stroke();ctx.fillStyle='#8892a5';ctx.font='11px Inter';ctx.fillText(String(val),left-10,Y+4)}
   const b=state.btcHistory.filter(p=>p.ts>=minTs&&p.ts<=maxTs);
-  if(b.length>1){const prices=b.map(p=>p.price),minP=Math.min(...prices),maxP=Math.max(...prices),pad=(maxP-minP)*.08||1,lo=minP-pad,hi=maxP+pad,yB=p=>top+(hi-p)/(hi-lo)*plotH;ctx.save();ctx.strokeStyle='#9fb4d8';ctx.shadowColor='rgba(120,150,210,.35)';ctx.shadowBlur=5;ctx.lineWidth=2;ctx.beginPath();b.forEach((p,i)=>{const X=x(p.ts),Y=yB(p.price);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.stroke();ctx.restore();ctx.fillStyle='#9fb4d8';ctx.textAlign='left';ctx.font='10px Inter';for(let i=0;i<=4;i++){const val=hi-(hi-lo)*i/4,Y=top+plotH*i/4;ctx.fillText('$'+new Intl.NumberFormat('es-ES',{notation:'compact',maximumFractionDigits:1}).format(val),left+plotW+8,Y+4)}const status=$('#btcChartStatus');if(status)status.textContent=''}else{const status=$('#btcChartStatus');if(status)status.textContent='BTC sin histórico disponible'}
-  ctx.save();ctx.strokeStyle='#f4c84a';ctx.shadowColor='rgba(244,200,74,.35)';ctx.shadowBlur=5;ctx.lineWidth=2.25;ctx.beginPath();f.forEach((p,i)=>{const X=x(p.ts),Y=yF(p.value);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.stroke();ctx.restore();
-  ctx.fillStyle='#8892a5';ctx.textAlign='left';ctx.font='11px Inter';ctx.fillText(new Date(minTs).toLocaleDateString('es-ES',{month:'short',year:'2-digit'}),left,h-7);ctx.textAlign='right';ctx.fillText(new Date(maxTs).toLocaleDateString('es-ES',{month:'short',year:'2-digit'}),left+plotW,h-7);ctx.textAlign='left';
+  if(b.length>1){
+    const prices=b.map(p=>p.price),minP=Math.min(...prices),maxP=Math.max(...prices),pad=(maxP-minP)*.06||1,lo=minP-pad,hi=maxP+pad,yB=p=>top+(hi-p)/(hi-lo)*plotH;
+    ctx.save();ctx.strokeStyle='#a9bddf';ctx.globalAlpha=.9;ctx.lineWidth=1.45;ctx.beginPath();b.forEach((p,i)=>{const X=x(p.ts),Y=yB(p.price);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.stroke();ctx.restore();
+    ctx.fillStyle='#a9bddf';ctx.textAlign='left';ctx.font='10px Inter';for(let i=0;i<=4;i++){const val=hi-(hi-lo)*i/4,Y=top+plotH*i/4;ctx.fillText('$'+new Intl.NumberFormat('es-ES',{notation:'compact',maximumFractionDigits:1}).format(val),left+plotW+12,Y+4)}
+    const status=$('#btcChartStatus');if(status)status.textContent=`BTC: ${state.providers.btc}`;
+  }else{const status=$('#btcChartStatus');if(status)status.textContent='BTC sin histórico disponible'}
+  // Línea del sentimiento más fina y sin resplandor para no tapar BTC.
+  ctx.save();ctx.strokeStyle='#f5c542';ctx.globalAlpha=.96;ctx.lineWidth=1.25;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();f.forEach((p,i)=>{const X=x(p.ts),Y=yF(p.value);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.stroke();ctx.restore();
+  ctx.fillStyle='#8892a5';ctx.textAlign='left';ctx.font='11px Inter';ctx.fillText(new Date(minTs).toLocaleDateString('es-ES',{month:'short',year:'2-digit'}),left,h-8);ctx.textAlign='right';ctx.fillText(new Date(maxTs).toLocaleDateString('es-ES',{month:'short',year:'2-digit'}),left+plotW,h-8);
 }
+
 function scoreCoin(c){let s=0;const ratio=c.market_cap?c.total_volume/c.market_cap:0;s+=Math.min(28,ratio*35);if(c.market_cap>5e6&&c.market_cap<150e6)s+=22;else if(c.market_cap<500e6)s+=10;if(c.total_volume>10e6)s+=20;else if(c.total_volume>2e6)s+=12;const ch=c.price_change_percentage_24h||0;if(ch>-8&&ch<12)s+=12;else if(ch>=12&&ch<30)s+=7;const ath=Math.abs(c.ath_change_percentage||0);if(ath>70&&ath<99)s+=12;else if(ath>50)s+=7;return Math.min(100,Math.round(s))}
 function signal(score,c){if((c.total_volume||0)<500000)return['Riesgo extremo','red'];if(score>=78)return['Prioridad','green'];if(score>=62)return['Vigilar','blue'];if(score>=45)return['Esperar','yellow'];return['Débil','red']}
 async function refreshAll(){
@@ -73,7 +98,7 @@ async function refreshAll(){
   if(results[2].status==='rejected')failed.push('histórico BTC');
   updateGauge();renderAll();drawFearChart();
   const btc=state.market.get('bitcoin');$('#btcPrice').textContent=btc?usd(btc.current_price):'—';$('#btcChange').textContent=btc?pct(btc.price_change_percentage_24h):'—';$('#btcChange').className=(btc?.price_change_percentage_24h||0)>=0?'positive':'negative';
-  if(failed.length){notify(`Actualización parcial: no se pudieron renovar ${failed.join(', ')}. Se mantienen los últimos datos guardados.`,'warn')}else notify('Datos actualizados correctamente.','ok');
+  if(failed.length){notify(`Actualización parcial: no se pudieron renovar ${failed.join(', ')}. Se mantienen los últimos datos guardados.`,'warn')}else notify(`Datos actualizados · Mercado: ${state.providers.market} · Sentimiento: ${state.providers.fear} · BTC: ${state.providers.btc}`,'ok');
   btn.disabled=false;btn.textContent='Actualizar datos';
 }
 function renderPortfolio(){const long=state.portfolio.filter(p=>p.strategy==='Largo plazo'),scalp=state.portfolio.filter(p=>p.strategy==='Spot rápido');const summary={long:renderPortfolioTable(long,'longRows',false),scalp:renderPortfolioTable(scalp,'scalpRows',true)};const setPnl=(id,pnl,pctv)=>{const el=$(id);el.textContent=`${usd(pnl)} (${pct(pctv)})`;el.className=pnl>=0?'positive':'negative'};$('#longValue').textContent=usd(summary.long.value);setPnl('#longPnl',summary.long.pnl,summary.long.cost?summary.long.pnl/summary.long.cost*100:0);$('#longValueDetail').textContent=usd(summary.long.value);$('#longCost').textContent=usd(summary.long.cost);setPnl('#longPnlDetail',summary.long.pnl,summary.long.cost?summary.long.pnl/summary.long.cost*100:0);$('#scalpValue').textContent=usd(summary.scalp.value);setPnl('#scalpPnl',summary.scalp.pnl,summary.scalp.cost?summary.scalp.pnl/summary.scalp.cost*100:0);$('#scalpCost').textContent=usd(summary.scalp.cost);const budget=+$('#scalpBudgetInput').value||0,free=budget-summary.scalp.cost;$('#scalpAvailable').textContent=usd(free);$('#availableTotal').textContent=usd(free);$('#capitalUsage').textContent=budget?`${Math.round(summary.scalp.cost/budget*100)}% del presupuesto usado`:'Sin presupuesto'}
