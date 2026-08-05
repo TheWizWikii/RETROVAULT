@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Dashboard personal para detectar oportunidades especulativas en altcoins, gestionar watchlist y operaciones spot." />
+  <title>Altcoin Opportunity Radar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">THEWIZWIKI • CRYPTO RADAR</p>
+      <h1>Altcoin Opportunity Radar</h1>
+      <p class="subtitle">Scanner especulativo, watchlist, cartera y diario para spot rápido.</p>
+    </div>
+    <div class="actions">
+      <button id="refreshBtn" class="btn primary">Actualizar datos</button>
+      <button id="settingsBtn" class="btn">Ajustes</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="grid summary-grid">
+      <article class="card metric"><span>Fear & Greed</span><strong id="fearValue">—</strong><small id="fearLabel">Cargando…</small></article>
+      <article class="card metric"><span>BTC</span><strong id="btcPrice">—</strong><small id="btcChange">—</small></article>
+      <article class="card metric"><span>Capital spot rápido</span><strong id="scalpCapital">1.500 USDT</strong><small id="capitalUsage">0% usado</small></article>
+      <article class="card metric"><span>Estado de mercado</span><strong id="marketMode">—</strong><small id="lastUpdate">Sin actualizar</small></article>
+    </section>
+
+    <nav class="tabs" aria-label="Secciones">
+      <button class="tab active" data-tab="scanner">Scanner</button>
+      <button class="tab" data-tab="watchlist">Watchlist</button>
+      <button class="tab" data-tab="portfolio">Cartera</button>
+      <button class="tab" data-tab="journal">Diario</button>
+      <button class="tab" data-tab="method">Método</button>
+    </nav>
+
+    <section id="scanner" class="tab-panel active">
+      <div class="panel-head">
+        <div><h2>Scanner de oportunidades</h2><p>Prioriza monedas conocidas, líquidas y de capitalización baja o media.</p></div>
+        <div class="filters">
+          <label>Market cap máx. <input id="maxMarketCap" type="number" value="150" min="5" step="5"> M$</label>
+          <label>Volumen mín. <input id="minVolume" type="number" value="2" min="0" step="1"> M$</label>
+          <label><input id="knownOnly" type="checkbox" checked> Solo universo conocido</label>
+        </div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Moneda</th><th>Precio</th><th>24h</th><th>Market cap</th><th>Volumen</th><th>Vol/MCap</th><th>Desde ATH</th><th>Score</th><th>Señal</th><th></th></tr></thead><tbody id="scannerRows"></tbody></table></div>
+      <p id="scannerMessage" class="notice"></p>
+    </section>
+
+    <section id="watchlist" class="tab-panel">
+      <div class="panel-head"><div><h2>Watchlist personal</h2><p>Añade monedas por su ID de CoinGecko, por ejemplo: <code>storj</code>, <code>bonk</code>, <code>vanar-chain</code>.</p></div>
+      <form id="watchlistForm" class="inline-form"><input id="coinIdInput" placeholder="ID CoinGecko" required><button class="btn primary">Añadir</button></form></div>
+      <div id="watchCards" class="grid watch-grid"></div>
+    </section>
+
+    <section id="portfolio" class="tab-panel">
+      <div class="panel-head"><div><h2>Cartera y spot rápido</h2><p>Los datos se guardan solo en tu navegador.</p></div><button id="addPositionBtn" class="btn primary">Añadir posición</button></div>
+      <div class="card capital-card">
+        <label>Capital total destinado a spot rápido (USDT) <input id="scalpBudgetInput" type="number" value="1500" min="0"></label>
+        <div><strong id="investedTotal">0 USDT</strong><span> invertidos</span></div>
+        <div><strong id="availableTotal">1.500 USDT</strong><span> disponibles</span></div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Activo</th><th>Estrategia</th><th>Balance</th><th>Entrada</th><th>Precio actual</th><th>Valor</th><th>PnL</th><th>Objetivo</th><th>Estado</th><th></th></tr></thead><tbody id="portfolioRows"></tbody></table></div>
+    </section>
+
+    <section id="journal" class="tab-panel">
+      <div class="panel-head"><div><h2>Diario de operaciones</h2><p>Registra entradas, salidas y aprendizajes.</p></div><button id="addJournalBtn" class="btn primary">Nueva entrada</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Moneda</th><th>Tipo</th><th>Entrada</th><th>Salida</th><th>Resultado</th><th>Notas</th><th></th></tr></thead><tbody id="journalRows"></tbody></table></div>
+    </section>
+
+    <section id="method" class="tab-panel">
+      <div class="grid method-grid">
+        <article class="card"><h3>Score del radar</h3><p>Combina liquidez, volumen relativo, capitalización, momentum y distancia al máximo histórico. No es una recomendación de compra.</p></article>
+        <article class="card"><h3>Semáforo</h3><p><b>Prioridad:</b> score alto y liquidez suficiente. <b>Vigilar:</b> estructura interesante. <b>Esperar:</b> falta confirmación. <b>Riesgo extremo:</b> liquidez baja o movimiento excesivo.</p></article>
+        <article class="card"><h3>Reglas personales sugeridas</h3><p>No concentrar todo el capital en una entrada, definir objetivo antes de comprar y evitar promediar una moneda únicamente porque cae.</p></article>
+        <article class="card"><h3>Privacidad</h3><p>Watchlist, cartera, ajustes y diario se guardan mediante <code>localStorage</code>. Usa Exportar para crear una copia de seguridad.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="modal-form">
+      <div class="modal-head"><h2>Ajustes</h2><button class="icon-btn" value="cancel">✕</button></div>
+      <label>Clave Demo de CoinGecko (opcional)<input id="apiKeyInput" type="password" placeholder="CG-..." autocomplete="off"></label>
+      <small>La clave queda guardada en tu navegador y será visible para quien use ese navegador. No uses una clave Pro en una web pública.</small>
+      <label>Frecuencia de actualización<select id="refreshInterval"><option value="0">Manual</option><option value="300000">5 minutos</option><option value="900000">15 minutos</option><option value="3600000">1 hora</option></select></label>
+      <div class="modal-actions"><button id="exportBtn" type="button" class="btn">Exportar datos</button><label class="btn file-label">Importar<input id="importInput" type="file" accept="application/json" hidden></label><button id="saveSettingsBtn" value="default" class="btn primary">Guardar</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="positionDialog"><form id="positionForm" class="modal-form"><div class="modal-head"><h2>Posición</h2><button type="button" class="icon-btn close-dialog">✕</button></div>
+    <input id="positionIndex" type="hidden"><label>ID CoinGecko<input id="positionCoinId" required placeholder="storj"></label><label>Símbolo<input id="positionSymbol" required placeholder="STORJ"></label><label>Estrategia<select id="positionStrategy"><option>Spot rápido</option><option>Largo plazo</option><option>Especulativa</option></select></label><label>Balance<input id="positionBalance" type="number" step="any" required></label><label>Precio medio (USD)<input id="positionEntry" type="number" step="any" required></label><label>Objetivo (%)<input id="positionTarget" type="number" value="20" step="1"></label><label>Estado<select id="positionStatus"><option>Abierta</option><option>Esperar verde</option><option>Acumulando</option><option>Cerrada</option></select></label><button class="btn primary">Guardar posición</button></form></dialog>
+
+  <dialog id="journalDialog"><form id="journalForm" class="modal-form"><div class="modal-head"><h2>Entrada del diario</h2><button type="button" class="icon-btn close-dialog">✕</button></div>
+    <label>Fecha<input id="journalDate" type="date" required></label><label>Moneda<input id="journalCoin" required></label><label>Tipo<select id="journalType"><option>Entrada</option><option>Salida</option><option>Revisión</option></select></label><label>Precio de entrada<input id="journalEntry" type="number" step="any"></label><label>Precio de salida<input id="journalExit" type="number" step="any"></label><label>Resultado (USDT)<input id="journalResult" type="number" step="any"></label><label>Notas<textarea id="journalNotes" rows="4"></textarea></label><button class="btn primary">Guardar</button></form></dialog>
+
+  <footer>Datos de mercado: CoinGecko · Sentimiento: Alternative.me · Uso educativo, no asesoramiento financiero.</footer>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
