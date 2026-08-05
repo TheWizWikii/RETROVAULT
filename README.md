@@ -1,7 +1,5 @@
 # Altcoin Opportunity Radar
 
-Dashboard personal estático para GitHub Pages.
-
 ## Incluye
 
 - Indicador visual de Miedo y Codicia con histórico.
@@ -14,15 +12,6 @@ Dashboard personal estático para GitHub Pages.
 - Watchlist editable.
 - Diario de operaciones.
 - Exportación/importación de copia de seguridad.
-
-## Publicar en GitHub Pages
-
-1. Sube todos los archivos a la raíz del repositorio.
-2. En GitHub abre **Settings → Pages**.
-3. En **Source**, selecciona **Deploy from a branch**.
-4. Elige `main` y `/ (root)`.
-5. Guarda. La URL será:
-   `https://TU-USUARIO.github.io/NOMBRE-DEL-REPOSITORIO/`
 
 ## Datos y privacidad
 
