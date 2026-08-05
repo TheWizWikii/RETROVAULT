@@ -1,6 +1,6 @@
 # Altcoin Opportunity Radar
 
-https://thewizwikii.github.io/altcoin-opportunity-radar/
+Dashboard personal estático para GitHub Pages.
 
 ## Incluye
 
@@ -14,6 +14,15 @@ https://thewizwikii.github.io/altcoin-opportunity-radar/
 - Watchlist editable.
 - Diario de operaciones.
 - Exportación/importación de copia de seguridad.
+
+## Publicar en GitHub Pages
+
+1. Sube todos los archivos a la raíz del repositorio.
+2. En GitHub abre **Settings → Pages**.
+3. En **Source**, selecciona **Deploy from a branch**.
+4. Elige `main` y `/ (root)`.
+5. Guarda. La URL será:
+   `https://TU-USUARIO.github.io/NOMBRE-DEL-REPOSITORIO/`
 
 ## Datos y privacidad
 
@@ -31,3 +40,9 @@ El score del radar es un filtro matemático simple y no asesoramiento financiero
 - Fear & Greed: Alternative.me → caché local.
 - El gráfico muestra la fuente activa, líneas más finas y barras laterales por zonas de sentimiento.
 - CoinGlass no se conecta directamente desde GitHub Pages porque su clave quedaría expuesta; se puede añadir después mediante un proxy seguro.
+
+
+## v2.4 — precisión Kraken
+- Cantidades y precios con hasta 10 decimales.
+- Admite formatos 26423.6846, 26.423,6846 y 26,423.6846.
+- Las cantidades ya no se abrevian en la cartera.
