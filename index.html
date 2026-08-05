@@ -18,6 +18,8 @@
       <p class="subtitle">Dos carteras, watchlist, sentimiento y oportunidades especulativas.</p>
     </div>
     <div class="actions">
+      <span id="cloudStatus" class="cloud-status offline">☁ Solo local</span>
+      <button id="authBtn" class="btn">Iniciar sesión</button>
       <button id="refreshBtn" class="btn primary">Actualizar datos</button>
       <button id="settingsBtn" class="btn">Ajustes</button>
     </div>
@@ -86,7 +88,7 @@
       </article>
 
       <article class="portfolio-section scalp-section">
-        <div class="panel-head"><div><h2>⚡ Cartera spot rápido / scalping</h2><p>Operaciones especulativas para rotar cuando entren en verde o alcancen el objetivo.</p></div><button class="btn primary add-position" data-strategy="Spot rápido">Añadir operación</button></div>
+        <div class="panel-head"><div><h2>⚡ Cartera spot rápido / scalping</h2><p>Operaciones especulativas para rotar cuando entren en verde o alcancen el objetivo.</p></div><div class="actions"><button id="enableAlertsBtn" class="btn" type="button">🔕 Activar alertas</button><button class="btn primary add-position" data-strategy="Spot rápido">Añadir operación</button></div></div><p class="alert-help">Las alertas aparecen al alcanzar el porcentaje objetivo. Para notificaciones del sistema, permite avisos y mantén la web abierta en una pestaña.</p>
         <div class="capital-card card">
           <label>Presupuesto total de spot rápido (USDT)<input id="scalpBudgetInput" type="number" value="1500" min="0" step="10"></label>
           <div><span>Coste abierto</span><strong id="scalpCost">—</strong></div>
@@ -111,8 +113,11 @@
       <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Moneda</th><th>Tipo</th><th>Entrada</th><th>Salida</th><th>Resultado</th><th>Notas</th><th></th></tr></thead><tbody id="journalRows"></tbody></table></div>
     </section>
 
-    <section id="method" class="tab-panel"><div class="grid method-grid"><article class="card"><h3>Score del radar</h3><p>Combina liquidez, volumen relativo, capitalización, momentum y distancia al máximo histórico. Es un filtro, no una recomendación.</p></article><article class="card"><h3>Datos locales</h3><p>Carteras, watchlist y diario se guardan en tu navegador mediante <code>localStorage</code>. Exporta copias periódicamente.</p></article><article class="card"><h3>Limitaciones</h3><p>Una página estática no incluye spot flow, desbloqueos ni datos premium de Coinglass sin un backend o una API privada.</p></article></div></section>
+    <section id="method" class="tab-panel"><div class="grid method-grid"><article class="card"><h3>Score del radar</h3><p>Combina liquidez, volumen relativo, capitalización, momentum y distancia al máximo histórico. Es un filtro, no una recomendación.</p></article><article class="card"><h3>Guardado y sincronización</h3><p>La aplicación guarda una copia local en <code>localStorage</code>. Cuando inicias sesión, sincroniza además tu cartera, watchlist, diario, presupuesto y ajustes con Supabase.</p></article><article class="card"><h3>Privacidad</h3><p>Las políticas RLS hacen que cada usuario solo pueda leer y modificar su propio documento. Nunca publiques una clave <em>service_role</em>.</p></article></div></section>
   </main>
+
+
+  <dialog id="authDialog"><form id="authForm" class="modal-form"><div class="modal-head"><h2>Cuenta y sincronización</h2><button type="button" class="icon-btn close-dialog">✕</button></div><p id="authDescription" class="notice">Inicia sesión para sincronizar tus datos entre navegadores y ordenadores.</p><label>Email<input id="authEmail" type="email" autocomplete="email" required></label><label>Contraseña<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></label><div class="modal-actions"><button id="signUpBtn" type="button" class="btn">Crear cuenta</button><button id="signInBtn" type="submit" class="btn primary">Iniciar sesión</button><button id="signOutBtn" type="button" class="btn danger" hidden>Cerrar sesión</button></div><hr><div class="modal-actions"><button id="cloudPullBtn" type="button" class="btn" disabled>Descargar desde nube</button><button id="cloudPushBtn" type="button" class="btn" disabled>Subir copia local</button></div><small>Al iniciar sesión por primera vez, si no existe una copia en la nube, se subirá automáticamente tu configuración local actual.</small></form></dialog>
 
   <dialog id="settingsDialog"><form method="dialog" class="modal-form"><div class="modal-head"><h2>Ajustes</h2><button class="icon-btn" value="cancel">✕</button></div><label>Clave Demo de CoinGecko (opcional)<input id="apiKeyInput" type="password" placeholder="CG-..." autocomplete="off"></label><small>No publiques una clave Pro. La clave Demo se guarda únicamente en este navegador.</small><label>Actualización automática<select id="refreshInterval"><option value="0">Manual</option><option value="300000">5 minutos</option><option value="900000">15 minutos</option><option value="3600000">1 hora</option></select></label><div class="modal-actions"><button id="exportBtn" type="button" class="btn">Exportar datos</button><label class="btn file-label">Importar<input id="importInput" type="file" accept="application/json" hidden></label><button id="saveSettingsBtn" value="default" class="btn primary">Guardar</button></div></form></dialog>
 
@@ -121,6 +126,6 @@
   <dialog id="journalDialog"><form id="journalForm" class="modal-form"><div class="modal-head"><h2>Entrada del diario</h2><button type="button" class="icon-btn close-dialog">✕</button></div><label>Fecha<input id="journalDate" type="date" required></label><label>Moneda<input id="journalCoin" required></label><label>Tipo<select id="journalType"><option>Entrada</option><option>Salida</option><option>Revisión</option></select></label><label>Precio de entrada<input id="journalEntry" type="number" step="any"></label><label>Precio de salida<input id="journalExit" type="number" step="any"></label><label>Resultado (USDT)<input id="journalResult" type="number" step="any"></label><label>Notas<textarea id="journalNotes" rows="4"></textarea></label><button class="btn primary">Guardar</button></form></dialog>
 
   <footer>Datos de mercado: CoinGecko · Sentimiento: Alternative.me · Uso educativo, no asesoramiento financiero.</footer>
-  <script src="config.js"></script><script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="cloud.js"></script><script src="app.js"></script>
 </body>
 </html>

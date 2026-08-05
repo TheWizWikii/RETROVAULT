@@ -1,10 +1,98 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem('aor_'+k))??d}catch{return d}},set:(k,v)=>localStorage.setItem('aor_'+k,JSON.stringify(v))};
-const state={watchlist:store.get('watchlist',APP_CONFIG.defaultWatchlist),portfolio:store.get('portfolio',APP_CONFIG.defaultPortfolio),journal:store.get('journal',[]),settings:store.get('settings',{apiKey:'',interval:0}),market:new Map(),fearHistory:[],btcHistory:[],timer:null,chartRange:0,providers:{market:'Caché',fear:'Caché',btc:'Caché'}};
+let suppressCloudSave=false;
+const CLOUD_KEYS=new Set(['watchlist','portfolio','journal','settings','scalpBudget','targetAlerts']);
+const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem('aor_'+k))??d}catch{return d}},set:(k,v)=>{localStorage.setItem('aor_'+k,JSON.stringify(v));if(!suppressCloudSave&&CLOUD_KEYS.has(k))window.dispatchEvent(new CustomEvent('app-data-changed'))}};
+const state={watchlist:store.get('watchlist',APP_CONFIG.defaultWatchlist),portfolio:store.get('portfolio',APP_CONFIG.defaultPortfolio),journal:store.get('journal',[]),settings:store.get('settings',{apiKey:'',interval:0,notifications:true}),market:new Map(),fearHistory:[],btcHistory:[],timer:null,chartRange:0,providers:{market:'Caché',fear:'Caché',btc:'Caché'},targetAlerts:store.get('targetAlerts',{})};
 const cache={market:store.get('marketCache',[]),fear:store.get('fearCache',[]),btc:store.get('btcCache',[])};
+function getAppSnapshot(){
+  return {
+    schemaVersion:3,
+    savedAt:new Date().toISOString(),
+    watchlist:state.watchlist,
+    portfolio:state.portfolio,
+    journal:state.journal,
+    settings:{interval:state.settings.interval,notifications:state.settings.notifications},
+    scalpBudget:+($('#scalpBudgetInput')?.value||store.get('scalpBudget',1500)),
+    targetAlerts:state.targetAlerts
+  };
+}
+function applyAppSnapshot(d,{saveLocal=true}={}){
+  if(!d||typeof d!=='object')return false;
+  suppressCloudSave=true;
+  try{
+    if(Array.isArray(d.watchlist))state.watchlist=d.watchlist;
+    if(Array.isArray(d.portfolio))state.portfolio=d.portfolio;
+    if(Array.isArray(d.journal))state.journal=d.journal;
+    if(d.settings)state.settings={...state.settings,...d.settings,apiKey:state.settings.apiKey||''};
+    if(d.targetAlerts)state.targetAlerts=d.targetAlerts;
+    if(d.scalpBudget!=null){store.set('scalpBudget',+d.scalpBudget);if($('#scalpBudgetInput'))$('#scalpBudgetInput').value=+d.scalpBudget;}
+    if(saveLocal){store.set('watchlist',state.watchlist);store.set('portfolio',state.portfolio);store.set('journal',state.journal);store.set('settings',state.settings);store.set('targetAlerts',state.targetAlerts);}
+  }finally{suppressCloudSave=false;}
+  renderAll();schedule();return true;
+}
+function setCloudBadge(status,text){const el=$('#cloudStatus');if(!el)return;el.className=`cloud-status ${status}`;el.textContent=text;}
+function updateAuthUi(){
+  const st=CloudSync.getStatus(),signed=st.signedIn;
+  setCloudBadge(signed?'online':'offline',signed?`☁ ${st.email}`:'☁ Solo local');
+  $('#authBtn').textContent=signed?'Mi cuenta':'Iniciar sesión';
+  $('#signOutBtn').hidden=!signed;$('#signInBtn').hidden=signed;$('#signUpBtn').hidden=signed;
+  $('#authEmail').disabled=signed;$('#authPassword').disabled=signed;
+  $('#cloudPullBtn').disabled=!signed;$('#cloudPushBtn').disabled=!signed;
+  $('#authDescription').textContent=signed?`Sincronización activa para ${st.email}. Los cambios se guardan automáticamente.`:(st.configured?'Inicia sesión para sincronizar tus datos.':'Configura Supabase en config.js antes de iniciar sesión.');
+}
+async function hydrateFromCloud(){
+  const st=CloudSync.getStatus();updateAuthUi();if(!st.signedIn)return;
+  setCloudBadge('syncing','☁ Sincronizando…');
+  try{
+    const row=await CloudSync.pull();
+    if(row?.payload&&Object.keys(row.payload).length){applyAppSnapshot(row.payload);notify('Datos descargados desde Supabase.','ok');}
+    else{await CloudSync.push(getAppSnapshot());notify('Primera copia local subida a Supabase.','ok');}
+    updateAuthUi();
+  }catch(e){setCloudBadge('error','☁ Error de sincronización');notify(`Supabase: ${e.message}`,'warn');}
+}
+
 let lastRefreshAt=0;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function notify(message,type='info'){let el=$('#dataNotice');if(!el){el=document.createElement('div');el.id='dataNotice';el.className='data-notice';document.body.appendChild(el)}el.textContent=message;el.className=`data-notice ${type} show`;clearTimeout(notify.t);notify.t=setTimeout(()=>el.classList.remove('show'),5000)}
+
+function playAlertTone(){
+  try{
+    const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
+    const ctx=new Ctx(),osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.type='sine';osc.frequency.setValueAtTime(880,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(1320,ctx.currentTime+.18);
+    gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.16,ctx.currentTime+.02);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.45);
+    osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.48);
+  }catch{}
+}
+async function enableTargetNotifications(){
+  if(!('Notification' in window)){notify('Este navegador no admite notificaciones.','warn');return}
+  const permission=await Notification.requestPermission();
+  state.settings.notifications=permission==='granted';store.set('settings',state.settings);updateNotificationButton();
+  notify(permission==='granted'?'Alertas de objetivos activadas. Mantén esta página abierta para recibirlas.':'Permiso de notificaciones no concedido.',permission==='granted'?'ok':'warn');
+}
+function updateNotificationButton(){
+  const b=$('#enableAlertsBtn');if(!b)return;
+  const granted='Notification' in window&&Notification.permission==='granted'&&state.settings.notifications!==false;
+  b.textContent=granted?'🔔 Alertas activadas':'🔕 Activar alertas';b.classList.toggle('alerts-on',granted);
+}
+function targetAlertKey(p){return `${p.coinId}|${p.entry}|${p.target}`}
+function checkTargetAlerts(){
+  let changed=false;
+  state.portfolio.filter(p=>p.strategy==='Spot rápido'&&p.target>0&&p.status!=='Cerrada').forEach(p=>{
+    const c=state.market.get(p.coinId),price=+c?.current_price||0,targetPrice=p.entry*(1+p.target/100),key=targetAlertKey(p),hit=price>=targetPrice;
+    if(hit&&!state.targetAlerts[key]){
+      state.targetAlerts[key]=true;changed=true;
+      const title=`🎯 ${p.symbol} alcanzó el objetivo`;
+      const body=`Precio ${usd(price)} · Objetivo ${p.target}% (${usd(targetPrice)})`;
+      notify(`${title}: ${body}`,'ok');playAlertTone();
+      if('Notification' in window&&Notification.permission==='granted'&&state.settings.notifications!==false){
+        try{new Notification(title,{body,icon:c?.image||'',tag:`target-${key}`,requireInteraction:true})}catch{}
+      }
+    }else if(!hit&&state.targetAlerts[key]){state.targetAlerts[key]=false;changed=true}
+  });
+  if(changed)store.set('targetAlerts',state.targetAlerts);
+}
+
 async function fetchWithRetry(url,options={},retries=1){let last;for(let i=0;i<=retries;i++){try{const r=await fetch(url,{...options,cache:'no-store'});if(r.ok)return r;if((r.status===429||r.status>=500)&&i<retries){await sleep(1200*(i+1));continue}throw new Error(`${r.status} ${r.statusText}`)}catch(e){last=e;if(i<retries){await sleep(1000*(i+1));continue}}}throw last||new Error('Error de red')}
 const usd=n=>Number.isFinite(+n)?new Intl.NumberFormat('es-ES',{style:'currency',currency:'USD',maximumFractionDigits:+n<0.01?8:2}).format(+n):'—';
 const compact=n=>Number.isFinite(+n)?new Intl.NumberFormat('es-ES',{notation:'compact',maximumFractionDigits:2}).format(+n):'—';
@@ -114,13 +202,14 @@ async function refreshAll(){
   if(results[0].status==='rejected')failed.push('precios');
   if(results[1].status==='rejected')failed.push('miedo y codicia');
   if(results[2].status==='rejected')failed.push('histórico BTC');
-  updateGauge();renderAll();drawFearChart();
+  updateGauge();renderAll();drawFearChart();checkTargetAlerts();
   const btc=state.market.get('bitcoin');$('#btcPrice').textContent=btc?usd(btc.current_price):'—';$('#btcChange').textContent=btc?pct(btc.price_change_percentage_24h):'—';$('#btcChange').className=(btc?.price_change_percentage_24h||0)>=0?'positive':'negative';
   if(failed.length){notify(`Actualización parcial: no se pudieron renovar ${failed.join(', ')}. Se mantienen los últimos datos guardados.`,'warn')}else notify(`Datos actualizados · Mercado: ${state.providers.market} · Sentimiento: ${state.providers.fear} · BTC: ${state.providers.btc}`,'ok');
   btn.disabled=false;btn.textContent='Actualizar datos';
 }
 function renderPortfolio(){const long=state.portfolio.filter(p=>p.strategy==='Largo plazo'),scalp=state.portfolio.filter(p=>p.strategy==='Spot rápido');const summary={long:renderPortfolioTable(long,'longRows',false),scalp:renderPortfolioTable(scalp,'scalpRows',true)};const setPnl=(id,pnl,pctv)=>{const el=$(id);el.textContent=`${usd(pnl)} (${pct(pctv)})`;el.className=pnl>=0?'positive':'negative'};$('#longValue').textContent=usd(summary.long.value);setPnl('#longPnl',summary.long.pnl,summary.long.cost?summary.long.pnl/summary.long.cost*100:0);$('#longValueDetail').textContent=usd(summary.long.value);$('#longCost').textContent=usd(summary.long.cost);setPnl('#longPnlDetail',summary.long.pnl,summary.long.cost?summary.long.pnl/summary.long.cost*100:0);$('#scalpValue').textContent=usd(summary.scalp.value);setPnl('#scalpPnl',summary.scalp.pnl,summary.scalp.cost?summary.scalp.pnl/summary.scalp.cost*100:0);$('#scalpCost').textContent=usd(summary.scalp.cost);const budget=+$('#scalpBudgetInput').value||0,free=budget-summary.scalp.cost;$('#scalpAvailable').textContent=usd(free);$('#availableTotal').textContent=usd(free);$('#capitalUsage').textContent=budget?`${Math.round(summary.scalp.cost/budget*100)}% del presupuesto usado`:'Sin presupuesto'}
-function renderPortfolioTable(list,tbodyId,isScalp){let value=0,cost=0;$('#'+tbodyId).innerHTML=list.map(p=>{const globalIndex=state.portfolio.indexOf(p),c=state.market.get(p.coinId),price=c?.current_price||0,v=price*p.balance,co=p.entry*p.balance,pnl=v-co,pnlPct=co?pnl/co*100:0;value+=v;cost+=co;const targetPrice=p.entry*(1+(p.target||0)/100);return `<tr><td><div class="coin-cell">${c?.image?`<img src="${c.image}" alt="">`:''}<b>${p.symbol}</b></div></td><td title="${p.balance}">${quantity(p.balance)}</td><td>${usd(p.entry)}</td><td>${price?usd(price):'—'}</td><td>${price?usd(v):'—'}</td><td class="${pnl>=0?'positive':'negative'}">${price?`${usd(pnl)} (${pct(pnlPct)})`:'—'}</td><td>${p.target?`${p.target}%`:'Bull run'}</td>${isScalp?`<td>${p.target?usd(targetPrice):'—'}</td>`:''}<td>${p.status}</td><td><button class="btn edit-position" data-i="${globalIndex}">Editar</button> <button class="remove delete-position" data-i="${globalIndex}">✕</button></td></tr>`}).join('');return{value,cost,pnl:value-cost}}
+function renderPortfolioTable(list,tbodyId,isScalp){let value=0,cost=0;$('#'+tbodyId).innerHTML=list.map(p=>{const globalIndex=state.portfolio.indexOf(p),c=state.market.get(p.coinId),price=c?.current_price||0,v=price*p.balance,co=p.entry*p.balance,pnl=v-co,pnlPct=co?pnl/co*100:0;value+=v;cost+=co;const targetPrice=p.entry*(1+(p.target||0)/100),targetHit=isScalp&&price>0&&p.target>0&&price>=targetPrice;const status=targetHit?'<span class="badge green">🎯 Objetivo alcanzado</span>':p.status;return `<tr class="${targetHit?'target-hit':''}"><td><div class="coin-cell">${c?.image?`<img src="${c.image}" alt="">`:''}<b>${p.symbol}</b></div></td><td title="${p.balance}">${quantity(p.balance)}</td><td>${usd(p.entry)}</td><td>${price?usd(price):'—'}</td><td>${price?usd(v):'—'}</td><td class="${pnl>=0?'positive':'negative'}">${price?`${usd(pnl)} (${pct(pnlPct)})`:'—'}</td><td>${p.target?`${p.target}%`:'Bull run'}</td>${isScalp?`<td class="${targetHit?'positive':''}">${p.target?usd(targetPrice):'—'}</td>`:''}<td>${status}</td><td><button class="btn edit-position" data-i="${globalIndex}">Editar</button> <button class="remove delete-position" data-i="${globalIndex}">✕</button></td></tr>`}).join('');return{value,cost,pnl:value-cost}}
+
 function renderScanner(){const max=(+$('#maxMarketCap').value||150)*1e6,min=(+$('#minVolume').value||2)*1e6;const coins=APP_CONFIG.knownUniverse.map(id=>state.market.get(id)).filter(Boolean).filter(c=>c.market_cap<=max&&c.market_cap>=5e6&&c.total_volume>=min).map(c=>({...c,score:scoreCoin(c)})).sort((a,b)=>b.score-a.score);$('#scannerRows').innerHTML=coins.map((c,i)=>{const[label,cls]=signal(c.score,c);return `<tr><td>${i+1}</td><td><div class="coin-cell"><img src="${c.image}" alt=""><b>${c.symbol.toUpperCase()}</b></div></td><td>${usd(c.current_price)}</td><td class="${c.price_change_percentage_24h>=0?'positive':'negative'}">${pct(c.price_change_percentage_24h)}</td><td>${compact(c.market_cap)}</td><td>${compact(c.total_volume)}</td><td>${c.market_cap?(c.total_volume/c.market_cap).toFixed(2):'—'}</td><td class="negative">${pct(c.ath_change_percentage)}</td><td><b>${c.score}</b></td><td><span class="badge ${cls}">${label}</span></td><td><button class="btn add-watch" data-id="${c.id}">+</button></td></tr>`}).join('');$('#scannerMessage').textContent=`${coins.length} monedas cumplen los filtros.`;$$('.add-watch').forEach(b=>b.onclick=()=>addWatch(b.dataset.id))}
 function addWatch(id){if(!state.watchlist.includes(id)){state.watchlist.push(id);store.set('watchlist',state.watchlist);renderWatchlist()}}
 function renderWatchlist(){$('#watchCards').innerHTML=state.watchlist.map(id=>{const c=state.market.get(id);if(!c)return`<article class="card watch-card"><div class="watch-head"><h3>${id}</h3><button class="remove" data-remove-watch="${id}">✕</button></div><p>Sin datos. Comprueba el ID de CoinGecko.</p></article>`;return`<article class="card watch-card"><div class="watch-head"><div class="coin"><img src="${c.image}" alt=""><h3>${c.symbol.toUpperCase()}</h3></div><button class="remove" data-remove-watch="${id}">✕</button></div><div class="price">${usd(c.current_price)}</div><span class="${c.price_change_percentage_24h>=0?'positive':'negative'}">${pct(c.price_change_percentage_24h)} 24h</span><dl><div><dt>Market cap</dt><dd>${compact(c.market_cap)}</dd></div><div><dt>Volumen</dt><dd>${compact(c.total_volume)}</dd></div><div><dt>Vol/MCap</dt><dd>${c.market_cap?(c.total_volume/c.market_cap).toFixed(2):'—'}</dd></div><div><dt>Score</dt><dd>${scoreCoin(c)}/100</dd></div></dl></article>`}).join('');$$('[data-remove-watch]').forEach(b=>b.onclick=()=>{state.watchlist=state.watchlist.filter(x=>x!==b.dataset.removeWatch);store.set('watchlist',state.watchlist);renderWatchlist()})}
@@ -128,15 +217,28 @@ function openPosition(i='',strategy='Largo plazo'){const p=i===''?{coinId:'',sym
 function renderJournal(){$('#journalRows').innerHTML=state.journal.map((j,i)=>`<tr><td>${j.date}</td><td>${j.coin}</td><td>${j.type}</td><td>${j.entry?usd(j.entry):'—'}</td><td>${j.exit?usd(j.exit):'—'}</td><td class="${+j.result>=0?'positive':'negative'}">${j.result!==''?usd(+j.result):'—'}</td><td>${j.notes||''}</td><td><button class="remove delete-journal" data-i="${i}">✕</button></td></tr>`).join('');$$('.delete-journal').forEach(b=>b.onclick=()=>{state.journal.splice(+b.dataset.i,1);store.set('journal',state.journal);renderJournal()})}
 function renderAll(){renderPortfolio();renderScanner();renderWatchlist();renderJournal()}
 function setupTabs(){$$('.tab').forEach(t=>t.onclick=()=>{$$('.tab,.tab-panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');$('#'+t.dataset.tab).classList.add('active')})}
-function exportData(){const data={watchlist:state.watchlist,portfolio:state.portfolio,journal:state.journal,settings:{interval:state.settings.interval},scalpBudget:+$('#scalpBudgetInput').value};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='altcoin-radar-backup.json';a.click();URL.revokeObjectURL(a.href)}
-function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.watchlist)state.watchlist=d.watchlist;if(d.portfolio)state.portfolio=d.portfolio;if(d.journal)state.journal=d.journal;if(d.scalpBudget!=null){$('#scalpBudgetInput').value=d.scalpBudget;store.set('scalpBudget',d.scalpBudget)}store.set('watchlist',state.watchlist);store.set('portfolio',state.portfolio);store.set('journal',state.journal);renderAll();refreshAll()}catch{alert('Archivo no válido')}};r.readAsText(f)}
+function exportData(){const data=getAppSnapshot();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='altcoin-radar-backup.json';a.click();URL.revokeObjectURL(a.href)}
+function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);applyAppSnapshot(d);CloudSync.schedulePush(getAppSnapshot,100);refreshAll()}catch{alert('Archivo no válido')}};r.readAsText(f)}
 function schedule(){if(state.timer)clearInterval(state.timer);if(state.settings.interval)state.timer=setInterval(refreshAll,state.settings.interval)}
-function setup(){
+async function setup(){
   // Corrige una entrada antigua frecuente: Kraken copiado como 26,423.6846 y guardado como 26.4236846.
   if(!store.get('precisionMigrationV24',false)){
     const storj=state.portfolio.find(p=>p.symbol==='STORJ'&&p.balance>20&&p.balance<30&&p.entry>0.04&&p.entry<0.06);
     if(storj)storj.balance*=1000;
     store.set('portfolio',state.portfolio);store.set('precisionMigrationV24',true);
   }
-  if(cache.market.length)state.market=new Map(cache.market.map(c=>[c.id,c]));if(cache.fear.length)state.fearHistory=cache.fear;if(cache.btc.length)state.btcHistory=cache.btc;setupTabs();$('#refreshBtn').onclick=refreshAll;$('#settingsBtn').onclick=()=>{$('#apiKeyInput').value=state.settings.apiKey;$('#refreshInterval').value=state.settings.interval;$('#settingsDialog').showModal()};$('#saveSettingsBtn').onclick=()=>{state.settings={apiKey:$('#apiKeyInput').value.trim(),interval:+$('#refreshInterval').value};store.set('settings',state.settings);schedule();setTimeout(refreshAll,100)};$('#watchlistForm').onsubmit=e=>{e.preventDefault();addWatch($('#coinIdInput').value.trim().toLowerCase());$('#coinIdInput').value='';refreshAll()};$$('.add-position').forEach(b=>b.onclick=()=>openPosition('',b.dataset.strategy));$('#positionForm').onsubmit=e=>{e.preventDefault();const p={coinId:$('#positionCoinId').value.trim().toLowerCase(),symbol:$('#positionSymbol').value.trim().toUpperCase(),strategy:$('#positionStrategy').value,balance:parseFlexibleNumber($('#positionBalance').value),entry:parseFlexibleNumber($('#positionEntry').value),target:parseFlexibleNumber($('#positionTarget').value),status:$('#positionStatus').value};if(!Number.isFinite(p.balance)||p.balance<=0||!Number.isFinite(p.entry)||p.entry<=0){alert('Revisa la cantidad y el precio medio. Puedes usar 26423.6846, 26.423,6846 o 26,423.6846.');return;}const i=$('#positionIndex').value;if(i==='')state.portfolio.push(p);else state.portfolio[+i]=p;store.set('portfolio',state.portfolio);$('#positionDialog').close();renderPortfolio();refreshAll()};document.body.addEventListener('click',e=>{const ed=e.target.closest('.edit-position'),del=e.target.closest('.delete-position');if(ed)openPosition(+ed.dataset.i);if(del){state.portfolio.splice(+del.dataset.i,1);store.set('portfolio',state.portfolio);renderPortfolio()}});$('#addJournalBtn').onclick=()=>{$('#journalDate').value=new Date().toISOString().slice(0,10);$('#journalDialog').showModal()};$('#journalForm').onsubmit=e=>{e.preventDefault();state.journal.unshift({date:$('#journalDate').value,coin:$('#journalCoin').value,type:$('#journalType').value,entry:$('#journalEntry').value,exit:$('#journalExit').value,result:$('#journalResult').value,notes:$('#journalNotes').value});store.set('journal',state.journal);$('#journalDialog').close();e.target.reset();renderJournal()};$$('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());$('#scalpBudgetInput').value=store.get('scalpBudget',1500);$('#scalpBudgetInput').oninput=e=>{store.set('scalpBudget',+e.target.value);renderPortfolio()};['maxMarketCap','minVolume'].forEach(id=>$('#'+id).oninput=renderScanner);$$('.range-btn').forEach(b=>b.onclick=()=>{$$('.range-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.chartRange=+b.dataset.range;drawFearChart()});$('#exportBtn').onclick=exportData;$('#importInput').onchange=importData;window.addEventListener('resize',()=>requestAnimationFrame(drawFearChart));schedule();renderAll();refreshAll()}
+  if(cache.market.length)state.market=new Map(cache.market.map(c=>[c.id,c]));if(cache.fear.length)state.fearHistory=cache.fear;if(cache.btc.length)state.btcHistory=cache.btc;setupTabs();
+  CloudSync.onStatus(updateAuthUi);
+  await CloudSync.init();updateAuthUi();
+  window.addEventListener('app-data-changed',()=>CloudSync.schedulePush(getAppSnapshot));
+  window.addEventListener('cloud-saved',()=>{setCloudBadge('online',`☁ ${CloudSync.getStatus().email}`);$('#cloudStatus')?.classList.add('sync-flash');setTimeout(()=>$('#cloudStatus')?.classList.remove('sync-flash'),700)});
+  window.addEventListener('cloud-error',e=>{setCloudBadge('error','☁ Error de sincronización');notify(`No se pudo guardar en Supabase: ${e.detail}`,'warn')});
+  window.addEventListener('cloud-auth-changed',hydrateFromCloud);
+  $('#authBtn').onclick=()=>{$('#authDialog').showModal();updateAuthUi()};
+  $('#authForm').onsubmit=async e=>{e.preventDefault();try{await CloudSync.signIn($('#authEmail').value.trim(),$('#authPassword').value);$('#authPassword').value='';await hydrateFromCloud()}catch(err){notify(err.message,'warn')}};
+  $('#signUpBtn').onclick=async()=>{try{const d=await CloudSync.signUp($('#authEmail').value.trim(),$('#authPassword').value);notify(d.session?'Cuenta creada y sesión iniciada.':'Cuenta creada. Revisa tu email para confirmarla.','ok');if(d.session)await hydrateFromCloud()}catch(err){notify(err.message,'warn')}};
+  $('#signOutBtn').onclick=async()=>{try{await CloudSync.signOut();updateAuthUi();notify('Sesión cerrada. La copia local sigue disponible.','ok')}catch(err){notify(err.message,'warn')}};
+  $('#cloudPullBtn').onclick=async()=>{try{const row=await CloudSync.pull();if(row?.payload){applyAppSnapshot(row.payload);notify('Copia de la nube aplicada.','ok')}else notify('No hay copia en la nube.','info')}catch(err){notify(err.message,'warn')}};
+  $('#cloudPushBtn').onclick=async()=>{try{await CloudSync.push(getAppSnapshot());notify('Copia local subida a Supabase.','ok')}catch(err){notify(err.message,'warn')}};
+$('#refreshBtn').onclick=refreshAll;$('#enableAlertsBtn').onclick=enableTargetNotifications;updateNotificationButton();$('#settingsBtn').onclick=()=>{$('#apiKeyInput').value=state.settings.apiKey;$('#refreshInterval').value=state.settings.interval;$('#settingsDialog').showModal()};$('#saveSettingsBtn').onclick=()=>{state.settings={apiKey:$('#apiKeyInput').value.trim(),interval:+$('#refreshInterval').value};store.set('settings',state.settings);schedule();setTimeout(refreshAll,100)};$('#watchlistForm').onsubmit=e=>{e.preventDefault();addWatch($('#coinIdInput').value.trim().toLowerCase());$('#coinIdInput').value='';refreshAll()};$$('.add-position').forEach(b=>b.onclick=()=>openPosition('',b.dataset.strategy));$('#positionForm').onsubmit=e=>{e.preventDefault();const p={coinId:$('#positionCoinId').value.trim().toLowerCase(),symbol:$('#positionSymbol').value.trim().toUpperCase(),strategy:$('#positionStrategy').value,balance:parseFlexibleNumber($('#positionBalance').value),entry:parseFlexibleNumber($('#positionEntry').value),target:parseFlexibleNumber($('#positionTarget').value),status:$('#positionStatus').value};if(!Number.isFinite(p.balance)||p.balance<=0||!Number.isFinite(p.entry)||p.entry<=0){alert('Revisa la cantidad y el precio medio. Puedes usar 26423.6846, 26.423,6846 o 26,423.6846.');return;}const i=$('#positionIndex').value;if(i==='')state.portfolio.push(p);else state.portfolio[+i]=p;store.set('portfolio',state.portfolio);$('#positionDialog').close();renderPortfolio();refreshAll()};document.body.addEventListener('click',e=>{const ed=e.target.closest('.edit-position'),del=e.target.closest('.delete-position');if(ed)openPosition(+ed.dataset.i);if(del){state.portfolio.splice(+del.dataset.i,1);store.set('portfolio',state.portfolio);renderPortfolio()}});$('#addJournalBtn').onclick=()=>{$('#journalDate').value=new Date().toISOString().slice(0,10);$('#journalDialog').showModal()};$('#journalForm').onsubmit=e=>{e.preventDefault();state.journal.unshift({date:$('#journalDate').value,coin:$('#journalCoin').value,type:$('#journalType').value,entry:$('#journalEntry').value,exit:$('#journalExit').value,result:$('#journalResult').value,notes:$('#journalNotes').value});store.set('journal',state.journal);$('#journalDialog').close();e.target.reset();renderJournal()};$$('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());$('#scalpBudgetInput').value=store.get('scalpBudget',1500);$('#scalpBudgetInput').oninput=e=>{store.set('scalpBudget',+e.target.value);renderPortfolio()};['maxMarketCap','minVolume'].forEach(id=>$('#'+id).oninput=renderScanner);$$('.range-btn').forEach(b=>b.onclick=()=>{$$('.range-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.chartRange=+b.dataset.range;drawFearChart()});$('#exportBtn').onclick=exportData;$('#importInput').onchange=importData;window.addEventListener('resize',()=>requestAnimationFrame(drawFearChart));schedule();renderAll();if(CloudSync.getStatus().signedIn)await hydrateFromCloud();refreshAll()}
 document.addEventListener('DOMContentLoaded',setup);
