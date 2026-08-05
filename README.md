@@ -1,6 +1,6 @@
 # Altcoin Opportunity Radar
 
-Dashboard estático para GitHub Pages orientado a:
+Dashboard estático orientado a:
 
 - detectar altcoins conocidas con capitalización baja/media y volumen suficiente;
 - gestionar una watchlist personal;
@@ -8,15 +8,6 @@ Dashboard estático para GitHub Pages orientado a:
 - mostrar el Crypto Fear & Greed Index;
 - llevar un diario de operaciones;
 - exportar e importar copias de seguridad.
-
-## Publicarlo en GitHub Pages
-
-1. Crea un repositorio nuevo en GitHub, por ejemplo `altcoin-radar`.
-2. Sube todos los archivos de esta carpeta a la rama `main`.
-3. En el repositorio entra en **Settings → Pages**.
-4. En **Build and deployment**, selecciona **Deploy from a branch**.
-5. Selecciona la rama `main` y la carpeta `/ (root)`.
-6. Guarda. GitHub mostrará la URL pública cuando termine el despliegue.
 
 ## CoinGecko
 
