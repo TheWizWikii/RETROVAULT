@@ -1,56 +1,7 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-let suppressCloudSave=false;
-const CLOUD_KEYS=new Set(['watchlist','portfolio','journal','settings','scalpBudget','targetAlerts']);
-const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem('aor_'+k))??d}catch{return d}},set:(k,v)=>{localStorage.setItem('aor_'+k,JSON.stringify(v));if(!suppressCloudSave&&CLOUD_KEYS.has(k))window.dispatchEvent(new CustomEvent('app-data-changed'))}};
+const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem('aor_'+k))??d}catch{return d}},set:(k,v)=>localStorage.setItem('aor_'+k,JSON.stringify(v))};
 const state={watchlist:store.get('watchlist',APP_CONFIG.defaultWatchlist),portfolio:store.get('portfolio',APP_CONFIG.defaultPortfolio),journal:store.get('journal',[]),settings:store.get('settings',{apiKey:'',interval:0,notifications:true}),market:new Map(),fearHistory:[],btcHistory:[],timer:null,chartRange:0,providers:{market:'Caché',fear:'Caché',btc:'Caché'},targetAlerts:store.get('targetAlerts',{})};
 const cache={market:store.get('marketCache',[]),fear:store.get('fearCache',[]),btc:store.get('btcCache',[])};
-function getAppSnapshot(){
-  return {
-    schemaVersion:3,
-    savedAt:new Date().toISOString(),
-    watchlist:state.watchlist,
-    portfolio:state.portfolio,
-    journal:state.journal,
-    settings:{interval:state.settings.interval,notifications:state.settings.notifications},
-    scalpBudget:+($('#scalpBudgetInput')?.value||store.get('scalpBudget',1500)),
-    targetAlerts:state.targetAlerts
-  };
-}
-function applyAppSnapshot(d,{saveLocal=true}={}){
-  if(!d||typeof d!=='object')return false;
-  suppressCloudSave=true;
-  try{
-    if(Array.isArray(d.watchlist))state.watchlist=d.watchlist;
-    if(Array.isArray(d.portfolio))state.portfolio=d.portfolio;
-    if(Array.isArray(d.journal))state.journal=d.journal;
-    if(d.settings)state.settings={...state.settings,...d.settings,apiKey:state.settings.apiKey||''};
-    if(d.targetAlerts)state.targetAlerts=d.targetAlerts;
-    if(d.scalpBudget!=null){store.set('scalpBudget',+d.scalpBudget);if($('#scalpBudgetInput'))$('#scalpBudgetInput').value=+d.scalpBudget;}
-    if(saveLocal){store.set('watchlist',state.watchlist);store.set('portfolio',state.portfolio);store.set('journal',state.journal);store.set('settings',state.settings);store.set('targetAlerts',state.targetAlerts);}
-  }finally{suppressCloudSave=false;}
-  renderAll();schedule();return true;
-}
-function setCloudBadge(status,text){const el=$('#cloudStatus');if(!el)return;el.className=`cloud-status ${status}`;el.textContent=text;}
-function updateAuthUi(){
-  const st=CloudSync.getStatus(),signed=st.signedIn;
-  setCloudBadge(signed?'online':'offline',signed?`☁ ${st.email}`:'☁ Solo local');
-  $('#authBtn').textContent=signed?'Mi cuenta':'Iniciar sesión';
-  $('#signOutBtn').hidden=!signed;$('#signInBtn').hidden=signed;$('#signUpBtn').hidden=signed;
-  $('#authEmail').disabled=signed;$('#authPassword').disabled=signed;
-  $('#cloudPullBtn').disabled=!signed;$('#cloudPushBtn').disabled=!signed;
-  $('#authDescription').textContent=signed?`Sincronización activa para ${st.email}. Los cambios se guardan automáticamente.`:(st.configured?'Inicia sesión para sincronizar tus datos.':'Configura Supabase en config.js antes de iniciar sesión.');
-}
-async function hydrateFromCloud(){
-  const st=CloudSync.getStatus();updateAuthUi();if(!st.signedIn)return;
-  setCloudBadge('syncing','☁ Sincronizando…');
-  try{
-    const row=await CloudSync.pull();
-    if(row?.payload&&Object.keys(row.payload).length){applyAppSnapshot(row.payload);notify('Datos descargados desde Supabase.','ok');}
-    else{await CloudSync.push(getAppSnapshot());notify('Primera copia local subida a Supabase.','ok');}
-    updateAuthUi();
-  }catch(e){setCloudBadge('error','☁ Error de sincronización');notify(`Supabase: ${e.message}`,'warn');}
-}
-
 let lastRefreshAt=0;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function notify(message,type='info'){let el=$('#dataNotice');if(!el){el=document.createElement('div');el.id='dataNotice';el.className='data-notice';document.body.appendChild(el)}el.textContent=message;el.className=`data-notice ${type} show`;clearTimeout(notify.t);notify.t=setTimeout(()=>el.classList.remove('show'),5000)}
@@ -217,28 +168,41 @@ function openPosition(i='',strategy='Largo plazo'){const p=i===''?{coinId:'',sym
 function renderJournal(){$('#journalRows').innerHTML=state.journal.map((j,i)=>`<tr><td>${j.date}</td><td>${j.coin}</td><td>${j.type}</td><td>${j.entry?usd(j.entry):'—'}</td><td>${j.exit?usd(j.exit):'—'}</td><td class="${+j.result>=0?'positive':'negative'}">${j.result!==''?usd(+j.result):'—'}</td><td>${j.notes||''}</td><td><button class="remove delete-journal" data-i="${i}">✕</button></td></tr>`).join('');$$('.delete-journal').forEach(b=>b.onclick=()=>{state.journal.splice(+b.dataset.i,1);store.set('journal',state.journal);renderJournal()})}
 function renderAll(){renderPortfolio();renderScanner();renderWatchlist();renderJournal()}
 function setupTabs(){$$('.tab').forEach(t=>t.onclick=()=>{$$('.tab,.tab-panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');$('#'+t.dataset.tab).classList.add('active')})}
-function exportData(){const data=getAppSnapshot();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='altcoin-radar-backup.json';a.click();URL.revokeObjectURL(a.href)}
-function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);applyAppSnapshot(d);CloudSync.schedulePush(getAppSnapshot,100);refreshAll()}catch{alert('Archivo no válido')}};r.readAsText(f)}
+function buildBackup(){
+  const local={};
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(key&&key.startsWith('aor_'))local[key]=localStorage.getItem(key);
+  }
+  return {
+    app:'Altcoin Opportunity Radar',version:'2.6-final',exportedAt:new Date().toISOString(),
+    data:{watchlist:state.watchlist,portfolio:state.portfolio,journal:state.journal,settings:state.settings,scalpBudget:parseFlexibleNumber($('#scalpBudgetInput').value)},
+    localStorage:local
+  };
+}
+function downloadJson(data,name){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500)}
+function exportData(){const day=new Date().toISOString().slice(0,10);downloadJson(buildBackup(),`Altcoin-Radar-TODO-${day}.json`)}
+function saveRollbackBackup(){localStorage.setItem('aor_rollbackBackup',JSON.stringify(buildBackup()))}
+function applyBackup(d){
+  const payload=d?.data||d;
+  if(!payload||!Array.isArray(payload.portfolio)||!Array.isArray(payload.watchlist)||!Array.isArray(payload.journal))throw new Error('Formato no válido');
+  saveRollbackBackup();
+  if(d.localStorage&&typeof d.localStorage==='object')Object.entries(d.localStorage).forEach(([k,v])=>{if(k.startsWith('aor_')&&k!=='aor_rollbackBackup')localStorage.setItem(k,String(v))});
+  state.watchlist=payload.watchlist;state.portfolio=payload.portfolio;state.journal=payload.journal;
+  state.settings={...state.settings,...(payload.settings||{})};
+  store.set('watchlist',state.watchlist);store.set('portfolio',state.portfolio);store.set('journal',state.journal);store.set('settings',state.settings);
+  if(payload.scalpBudget!=null){$('#scalpBudgetInput').value=payload.scalpBudget;store.set('scalpBudget',payload.scalpBudget)}
+  renderAll();schedule();refreshAll();
+}
+function importData(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{applyBackup(JSON.parse(r.result));alert('Copia importada correctamente. Se ha guardado una copia anterior por seguridad.')}catch(err){alert('Archivo no válido o incompatible. No se han sustituido tus datos.')}finally{e.target.value=''}};r.readAsText(f)}
+function restoreRollback(){try{const raw=localStorage.getItem('aor_rollbackBackup');if(!raw){alert('No hay una copia anterior disponible.');return}const backup=JSON.parse(raw);if(confirm('¿Restaurar el estado anterior a la última importación?')){applyBackup(backup);alert('Copia anterior restaurada.')}}catch{alert('No se pudo restaurar la copia anterior.')}}
 function schedule(){if(state.timer)clearInterval(state.timer);if(state.settings.interval)state.timer=setInterval(refreshAll,state.settings.interval)}
-async function setup(){
+function setup(){
   // Corrige una entrada antigua frecuente: Kraken copiado como 26,423.6846 y guardado como 26.4236846.
   if(!store.get('precisionMigrationV24',false)){
     const storj=state.portfolio.find(p=>p.symbol==='STORJ'&&p.balance>20&&p.balance<30&&p.entry>0.04&&p.entry<0.06);
     if(storj)storj.balance*=1000;
     store.set('portfolio',state.portfolio);store.set('precisionMigrationV24',true);
   }
-  if(cache.market.length)state.market=new Map(cache.market.map(c=>[c.id,c]));if(cache.fear.length)state.fearHistory=cache.fear;if(cache.btc.length)state.btcHistory=cache.btc;setupTabs();
-  CloudSync.onStatus(updateAuthUi);
-  await CloudSync.init();updateAuthUi();
-  window.addEventListener('app-data-changed',()=>CloudSync.schedulePush(getAppSnapshot));
-  window.addEventListener('cloud-saved',()=>{setCloudBadge('online',`☁ ${CloudSync.getStatus().email}`);$('#cloudStatus')?.classList.add('sync-flash');setTimeout(()=>$('#cloudStatus')?.classList.remove('sync-flash'),700)});
-  window.addEventListener('cloud-error',e=>{setCloudBadge('error','☁ Error de sincronización');notify(`No se pudo guardar en Supabase: ${e.detail}`,'warn')});
-  window.addEventListener('cloud-auth-changed',hydrateFromCloud);
-  $('#authBtn').onclick=()=>{$('#authDialog').showModal();updateAuthUi()};
-  $('#authForm').onsubmit=async e=>{e.preventDefault();try{await CloudSync.signIn($('#authEmail').value.trim(),$('#authPassword').value);$('#authPassword').value='';await hydrateFromCloud()}catch(err){notify(err.message,'warn')}};
-  $('#signUpBtn').onclick=async()=>{try{const d=await CloudSync.signUp($('#authEmail').value.trim(),$('#authPassword').value);notify(d.session?'Cuenta creada y sesión iniciada.':'Cuenta creada. Revisa tu email para confirmarla.','ok');if(d.session)await hydrateFromCloud()}catch(err){notify(err.message,'warn')}};
-  $('#signOutBtn').onclick=async()=>{try{await CloudSync.signOut();updateAuthUi();notify('Sesión cerrada. La copia local sigue disponible.','ok')}catch(err){notify(err.message,'warn')}};
-  $('#cloudPullBtn').onclick=async()=>{try{const row=await CloudSync.pull();if(row?.payload){applyAppSnapshot(row.payload);notify('Copia de la nube aplicada.','ok')}else notify('No hay copia en la nube.','info')}catch(err){notify(err.message,'warn')}};
-  $('#cloudPushBtn').onclick=async()=>{try{await CloudSync.push(getAppSnapshot());notify('Copia local subida a Supabase.','ok')}catch(err){notify(err.message,'warn')}};
-$('#refreshBtn').onclick=refreshAll;$('#enableAlertsBtn').onclick=enableTargetNotifications;updateNotificationButton();$('#settingsBtn').onclick=()=>{$('#apiKeyInput').value=state.settings.apiKey;$('#refreshInterval').value=state.settings.interval;$('#settingsDialog').showModal()};$('#saveSettingsBtn').onclick=()=>{state.settings={apiKey:$('#apiKeyInput').value.trim(),interval:+$('#refreshInterval').value};store.set('settings',state.settings);schedule();setTimeout(refreshAll,100)};$('#watchlistForm').onsubmit=e=>{e.preventDefault();addWatch($('#coinIdInput').value.trim().toLowerCase());$('#coinIdInput').value='';refreshAll()};$$('.add-position').forEach(b=>b.onclick=()=>openPosition('',b.dataset.strategy));$('#positionForm').onsubmit=e=>{e.preventDefault();const p={coinId:$('#positionCoinId').value.trim().toLowerCase(),symbol:$('#positionSymbol').value.trim().toUpperCase(),strategy:$('#positionStrategy').value,balance:parseFlexibleNumber($('#positionBalance').value),entry:parseFlexibleNumber($('#positionEntry').value),target:parseFlexibleNumber($('#positionTarget').value),status:$('#positionStatus').value};if(!Number.isFinite(p.balance)||p.balance<=0||!Number.isFinite(p.entry)||p.entry<=0){alert('Revisa la cantidad y el precio medio. Puedes usar 26423.6846, 26.423,6846 o 26,423.6846.');return;}const i=$('#positionIndex').value;if(i==='')state.portfolio.push(p);else state.portfolio[+i]=p;store.set('portfolio',state.portfolio);$('#positionDialog').close();renderPortfolio();refreshAll()};document.body.addEventListener('click',e=>{const ed=e.target.closest('.edit-position'),del=e.target.closest('.delete-position');if(ed)openPosition(+ed.dataset.i);if(del){state.portfolio.splice(+del.dataset.i,1);store.set('portfolio',state.portfolio);renderPortfolio()}});$('#addJournalBtn').onclick=()=>{$('#journalDate').value=new Date().toISOString().slice(0,10);$('#journalDialog').showModal()};$('#journalForm').onsubmit=e=>{e.preventDefault();state.journal.unshift({date:$('#journalDate').value,coin:$('#journalCoin').value,type:$('#journalType').value,entry:$('#journalEntry').value,exit:$('#journalExit').value,result:$('#journalResult').value,notes:$('#journalNotes').value});store.set('journal',state.journal);$('#journalDialog').close();e.target.reset();renderJournal()};$$('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());$('#scalpBudgetInput').value=store.get('scalpBudget',1500);$('#scalpBudgetInput').oninput=e=>{store.set('scalpBudget',+e.target.value);renderPortfolio()};['maxMarketCap','minVolume'].forEach(id=>$('#'+id).oninput=renderScanner);$$('.range-btn').forEach(b=>b.onclick=()=>{$$('.range-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.chartRange=+b.dataset.range;drawFearChart()});$('#exportBtn').onclick=exportData;$('#importInput').onchange=importData;window.addEventListener('resize',()=>requestAnimationFrame(drawFearChart));schedule();renderAll();if(CloudSync.getStatus().signedIn)await hydrateFromCloud();refreshAll()}
+  if(cache.market.length)state.market=new Map(cache.market.map(c=>[c.id,c]));if(cache.fear.length)state.fearHistory=cache.fear;if(cache.btc.length)state.btcHistory=cache.btc;setupTabs();$('#refreshBtn').onclick=refreshAll;$('#enableAlertsBtn').onclick=enableTargetNotifications;updateNotificationButton();$('#settingsBtn').onclick=()=>{$('#apiKeyInput').value=state.settings.apiKey;$('#refreshInterval').value=state.settings.interval;$('#settingsDialog').showModal()};$('#saveSettingsBtn').onclick=()=>{state.settings={apiKey:$('#apiKeyInput').value.trim(),interval:+$('#refreshInterval').value};store.set('settings',state.settings);schedule();setTimeout(refreshAll,100)};$('#watchlistForm').onsubmit=e=>{e.preventDefault();addWatch($('#coinIdInput').value.trim().toLowerCase());$('#coinIdInput').value='';refreshAll()};$$('.add-position').forEach(b=>b.onclick=()=>openPosition('',b.dataset.strategy));$('#positionForm').onsubmit=e=>{e.preventDefault();const p={coinId:$('#positionCoinId').value.trim().toLowerCase(),symbol:$('#positionSymbol').value.trim().toUpperCase(),strategy:$('#positionStrategy').value,balance:parseFlexibleNumber($('#positionBalance').value),entry:parseFlexibleNumber($('#positionEntry').value),target:parseFlexibleNumber($('#positionTarget').value),status:$('#positionStatus').value};if(!Number.isFinite(p.balance)||p.balance<=0||!Number.isFinite(p.entry)||p.entry<=0){alert('Revisa la cantidad y el precio medio. Puedes usar 26423.6846, 26.423,6846 o 26,423.6846.');return;}const i=$('#positionIndex').value;if(i==='')state.portfolio.push(p);else state.portfolio[+i]=p;store.set('portfolio',state.portfolio);$('#positionDialog').close();renderPortfolio();refreshAll()};document.body.addEventListener('click',e=>{const ed=e.target.closest('.edit-position'),del=e.target.closest('.delete-position');if(ed)openPosition(+ed.dataset.i);if(del){state.portfolio.splice(+del.dataset.i,1);store.set('portfolio',state.portfolio);renderPortfolio()}});$('#addJournalBtn').onclick=()=>{$('#journalDate').value=new Date().toISOString().slice(0,10);$('#journalDialog').showModal()};$('#journalForm').onsubmit=e=>{e.preventDefault();state.journal.unshift({date:$('#journalDate').value,coin:$('#journalCoin').value,type:$('#journalType').value,entry:$('#journalEntry').value,exit:$('#journalExit').value,result:$('#journalResult').value,notes:$('#journalNotes').value});store.set('journal',state.journal);$('#journalDialog').close();e.target.reset();renderJournal()};$$('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());$('#scalpBudgetInput').value=store.get('scalpBudget',1500);$('#scalpBudgetInput').oninput=e=>{store.set('scalpBudget',+e.target.value);renderPortfolio()};['maxMarketCap','minVolume'].forEach(id=>$('#'+id).oninput=renderScanner);$$('.range-btn').forEach(b=>b.onclick=()=>{$$('.range-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.chartRange=+b.dataset.range;drawFearChart()});$('#exportBtn').onclick=exportData;$('#importInput').onchange=importData;$('#quickExportBtn').onclick=exportData;$('#quickImportInput').onchange=importData;$('#restoreBackupBtn').onclick=restoreRollback;window.addEventListener('resize',()=>requestAnimationFrame(drawFearChart));schedule();renderAll();refreshAll()}
 document.addEventListener('DOMContentLoaded',setup);

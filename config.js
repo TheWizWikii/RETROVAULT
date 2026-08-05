@@ -1,8 +1,4 @@
 window.APP_CONFIG = {
-  supabase: {
-    url: "https://pywiubaymppyasfeqddd.supabase.co",
-    publishableKey: "sb_publishable_Yktr4NcJ74hpjmSRaufi6Q_8AcOx7HR"
-  },
   defaultWatchlist: ["storj","bonk","vanar-chain","portal-2","mira","flow","synapse-2","nosana","fetch-ai","pippin"],
   knownUniverse: ["storj","bonk","vanar-chain","portal-2","flow","zeta-chain","cartesi","origintrail","golem","akash-network","dusk-network","marlin","rei-network","rif-token","mdt","automata","arpa","vulcan-forged","telos","syscoin","phala-network","nosana","synapse-2","fetch-ai","pippin","blur","dogwifcoin","aethir","ethena","sonic-3","solv-protocol","virtual-protocol","kaspa","aptos","optimism","sui","avalanche-2","cardano","algorand","dogecoin","pepe","solana","ethereum"],
   defaultPortfolio: [
