@@ -1,6 +1,7 @@
 # ⚡ CryptoNeon Dashboard
 
 Dashboard de criptomonedas con estilo cyberpunk/neon, indicadores técnicos (RSI, MACD, Estocástico) y puntuación de entrada.
+https://thewizwikii.github.io/altcoin-opportunity-radar/
 
 ## 🚀 Características
 
