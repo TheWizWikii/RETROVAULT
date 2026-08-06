@@ -2,39 +2,22 @@
 //  CONFIGURACIÓN
 // ============================================================
 const CONFIG = {
-    // Sistemas disponibles (puedes añadir más aquí)
     SYSTEMS: [
-        'PS3',
-        'PS2',
-        'PSP',
-        'PS1',
-        'NES',
-        'SNES',
-        'N64',
-        'GAMEBOY',
-        'GAMEBOY ADVANCE',
-        'GAMEBOY COLOR',
-        'SEGA GENESIS',
-        'DREAMCAST',
-        'SATURN',
-        'NEOGEO',
-        'ATARI 2600'
+        'PS3', 'PS2', 'PSP', 'PS1', 'NES', 'SNES', 'N64',
+        'GAMEBOY', 'GAMEBOY ADVANCE', 'GAMEBOY COLOR',
+        'SEGA GENESIS', 'DREAMCAST', 'SATURN'
     ],
-    // Tipos de contenido
-    TYPES: ['ROM', 'Port', 'Homebrew', 'ISO', 'CHD'],
-    // Ruta base para los archivos JSON
     DATA_PATH: 'data/'
 };
 
 // ============================================================
-//  MAPEO DE SISTEMAS A NOMBRES DE CARPETA DE LIBRETRO
+//  MAPEO DE SISTEMAS A LIBRETRO
 // ============================================================
 const systemMap = {
     'PS3': 'Sony - PlayStation 3',
     'PS2': 'Sony - PlayStation 2',
     'PSP': 'Sony - PlayStation Portable',
     'PS1': 'Sony - PlayStation',
-    'PSX': 'Sony - PlayStation',
     'NES': 'Nintendo - Nintendo Entertainment System',
     'SNES': 'Nintendo - Super Nintendo Entertainment System',
     'N64': 'Nintendo - Nintendo 64',
@@ -79,41 +62,28 @@ const systemMap = {
 };
 
 // ============================================================
-//  FUNCIÓN PARA GENERAR URL DE PORTADA DESDE LIBRETRO
+//  FUNCIÓN PARA PORTADAS
 // ============================================================
 function getCoverUrl(game) {
-    const systemFolder = systemMap[game.sistema] || game.sistema || game.system;
-    // Usar el título del juego (puede venir como titulo o title)
+    const systemName = game.sistema || game.system || '';
+    const systemFolder = systemMap[systemName] || systemName;
     const title = game.titulo || game.title || '';
-    // Limpiar el nombre del juego para la URL
-    const cleanTitle = title
-        .replace(/[:\/\\*?"<>|]/g, '') // Eliminar caracteres inválidos
-        .replace(/\s+/g, ' ') // Espacios normales
-        .trim();
+    const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
     
-    // Si el juego tiene cover personalizado, usarlo
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
     
-    // Si tiene cover en formato Libretro (ej: "covers/ps3/Last of Us.png")
     if (game.cover && game.cover.includes('covers/')) {
-        // Intentar construir URL desde Libretro
-        const fileName = game.cover.split('/').pop();
-        const cleanFileName = fileName.replace('.png', '').replace('.webp', '');
-        return `https://thumbnails.libretro.com/${systemFolder}/Named_Boxarts/${cleanFileName}.png`;
+        const fileName = game.cover.split('/').pop().replace('.png', '').replace('.webp', '');
+        return `https://thumbnails.libretro.com/${systemFolder}/Named_Boxarts/${fileName}.png`;
     }
     
-    // Fallback: usar el título limpio
     return `https://thumbnails.libretro.com/${systemFolder}/Named_Boxarts/${cleanTitle}.png`;
 }
 
-// ============================================================
-//  FUNCIÓN PARA OBTENER PORTADA CON FALLBACK
-// ============================================================
 function getCoverWithFallback(game) {
     const url = getCoverUrl(game);
-    // Si el juego tiene una portada manual (URL directa)
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
@@ -121,11 +91,11 @@ function getCoverWithFallback(game) {
 }
 
 // ============================================================
-//  CARGA DINÁMICA DE JUEGOS DESDE JSON
+//  CARGA DE JUEGOS
 // ============================================================
 let games = [];
 let filteredGames = [];
-let systems = [...CONFIG.SYSTEMS];
+let systems = [];
 let currentSystem = 'all';
 let searchQuery = '';
 let isLoading = false;
@@ -138,26 +108,25 @@ async function loadGamesFromSystem(system) {
     try {
         const response = await fetch(url);
         if (!response.ok) {
-            console.warn(`No se pudo cargar ${systemKey}.json`);
+            console.warn(`⚠️ No se pudo cargar ${systemKey}.json`);
             return [];
         }
         const data = await response.json();
         
-        // Asegurar que los juegos tengan el campo sistema
         if (data.juegos && Array.isArray(data.juegos)) {
-            // Mapear los campos del JSON al formato interno
             return data.juegos.map(juego => ({
-                id: juego.id || `${systemKey}-${juego.titulo?.toLowerCase().replace(/\s+/g, '-')}`,
+                id: juego.id || `${systemKey}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
                 titulo: juego.titulo || juego.title || 'Sin título',
-                title: juego.titulo || juego.title || 'Sin título', // Para compatibilidad
+                title: juego.titulo || juego.title || 'Sin título',
                 sistema: data.sistema || system,
-                system: data.sistema || system, // Para compatibilidad
+                system: data.sistema || system,
                 year: juego.año || juego.year || 0,
                 genero: juego.genero || 'Desconocido',
                 desarrolladora: juego.desarrolladora || 'Desconocida',
                 descripcion: juego.descripcion || 'Sin descripción disponible',
                 description: juego.descripcion || 'Sin descripción disponible',
                 cover: juego.cover || '',
+                type: juego.type || 'ROM',
                 downloads: [
                     { label: '🔵 Descarga Directa', url: juego.download || '#' },
                     { label: '🟢 Torrent', url: juego.torrent || '#' },
@@ -167,7 +136,7 @@ async function loadGamesFromSystem(system) {
         }
         return [];
     } catch (error) {
-        console.error(`Error cargando ${systemKey}.json:`, error);
+        console.error(`❌ Error cargando ${systemKey}.json:`, error);
         return [];
     }
 }
@@ -192,7 +161,7 @@ async function loadAllGames() {
         console.log(`✅ Cargados ${games.length} juegos de ${loadedSystems.size} sistemas`);
         return games;
     } catch (error) {
-        console.error('Error cargando juegos:', error);
+        console.error('❌ Error cargando juegos:', error);
         return [];
     } finally {
         isLoading = false;
@@ -213,7 +182,15 @@ const searchBtn = document.getElementById('searchBtn');
 const systemSelect = document.getElementById('systemSelect');
 const systemChips = document.getElementById('systemChips');
 const addSystemBtn = document.getElementById('addSystemBtn');
+const addSystemSettingsBtn = document.getElementById('addSystemSettingsBtn');
 const refreshBtn = document.getElementById('refreshBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const settingsClose = document.getElementById('settingsClose');
+const systemList = document.getElementById('systemList');
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importFile = document.getElementById('importFile');
 const gameCount = document.getElementById('gameCount');
 const suggestionsEl = document.getElementById('suggestions');
 const modal = document.getElementById('gameModal');
@@ -221,22 +198,21 @@ const modalBody = document.getElementById('modalBody');
 const modalClose = document.querySelector('.modal-close');
 
 // ============================================================
-//  INICIALIZAR SISTEMAS
+//  SISTEMAS
 // ============================================================
-function initSystems() {
-    // Cargar sistemas guardados
+function loadSystems() {
     try {
         const saved = localStorage.getItem('gameSystems');
         if (saved) {
             const parsed = JSON.parse(saved);
             if (parsed && parsed.length > 0) {
                 systems = parsed;
+                return;
             }
         }
     } catch (e) {}
-
-    updateSystemSelect();
-    renderSystemChips();
+    systems = [...CONFIG.SYSTEMS];
+    saveSystems();
 }
 
 function saveSystems() {
@@ -265,26 +241,36 @@ function renderSystemChips() {
     systems.sort().forEach(sys => {
         const isLoaded = loadedSystems.has(sys);
         const chip = document.createElement('span');
-        chip.className = `system-chip ${currentSystem === sys ? 'active' : ''} ${!isLoaded ? 'loading' : ''}`;
+        chip.className = `system-chip ${currentSystem === sys ? 'active' : ''}`;
         chip.dataset.system = sys;
-        chip.innerHTML = `
-            ${sys}
-            ${!isLoaded ? ' ⏳' : ''}
-            <span class="delete-chip" data-system="${sys}">✕</span>
-        `;
-        chip.addEventListener('click', function(e) {
-            if (e.target.classList.contains('delete-chip')) return;
-            currentSystem = this.dataset.system || sys;
+        chip.textContent = sys;
+        if (!isLoaded) {
+            chip.classList.add('loading');
+            chip.textContent = `${sys} ⏳`;
+        }
+        chip.addEventListener('click', function() {
+            currentSystem = this.dataset.system;
             systemSelect.value = currentSystem;
             renderSystemChips();
             filterGames();
         });
-        chip.querySelector('.delete-chip').addEventListener('click', function(e) {
-            e.stopPropagation();
-            const sys = this.dataset.system;
-            removeSystem(sys);
-        });
         systemChips.appendChild(chip);
+    });
+}
+
+function renderSystemList() {
+    systemList.innerHTML = '';
+    systems.sort().forEach(sys => {
+        const item = document.createElement('div');
+        item.className = 'system-list-item';
+        item.innerHTML = `
+            ${sys}
+            <span class="delete-system" data-system="${sys}">✕</span>
+        `;
+        item.querySelector('.delete-system').addEventListener('click', function() {
+            removeSystem(this.dataset.system);
+        });
+        systemList.appendChild(item);
     });
 }
 
@@ -296,19 +282,19 @@ function addSystem() {
     if (!newSystem || newSystem.trim() === '') return;
     const sys = newSystem.trim().toUpperCase();
     if (systems.includes(sys)) {
-        alert(`El sistema "${sys}" ya existe.`);
+        alert(`⚠️ El sistema "${sys}" ya existe.`);
         return;
     }
     systems.push(sys);
     saveSystems();
-    initSystems();
-    systemSelect.value = sys;
-    currentSystem = sys;
+    updateSystemSelect();
     renderSystemChips();
-    // Recargar juegos incluyendo el nuevo sistema
+    renderSystemList();
+    // Recargar juegos
     loadAllGames().then(() => {
         filterGames();
         renderSystemChips();
+        updateGameCount();
     });
 }
 
@@ -325,10 +311,12 @@ function removeSystem(sys) {
         currentSystem = 'all';
         systemSelect.value = 'all';
     }
-    // Recargar juegos sin el sistema eliminado
     games = games.filter(g => g.sistema !== sys && g.system !== sys);
-    initSystems();
+    updateSystemSelect();
+    renderSystemChips();
+    renderSystemList();
     filterGames();
+    updateGameCount();
 }
 
 // ============================================================
@@ -344,16 +332,13 @@ function filterGames() {
             const title = (game.titulo || game.title || '').toLowerCase();
             const systemName = (game.sistema || game.system || '').toLowerCase();
             const desc = (game.descripcion || game.description || '').toLowerCase();
-            const matchTitle = title.includes(query);
-            const matchSystem = systemName.includes(query);
-            const matchDesc = desc.includes(query);
-            if (!matchTitle && !matchSystem && !matchDesc) return false;
+            if (!title.includes(query) && !systemName.includes(query) && !desc.includes(query)) return false;
         }
         return true;
     });
 
     renderGames();
-    updateCount();
+    updateGameCount();
 }
 
 // ============================================================
@@ -365,7 +350,6 @@ function renderGames() {
             <div class="empty-state">
                 <i class="fas fa-spinner fa-spin"></i>
                 <h3>Cargando juegos...</h3>
-                <p style="color:#555577;">Espera mientras se cargan los datos</p>
             </div>
         `;
         return;
@@ -378,17 +362,9 @@ function renderGames() {
                 <h3>${games.length === 0 ? '📂 No hay juegos cargados' : 'No hay juegos que coincidan'}</h3>
                 <p style="color:#555577;margin-top:10px;">
                     ${games.length === 0 
-                        ? 'Asegúrate de tener archivos JSON en la carpeta data/ con los juegos' 
+                        ? 'Asegúrate de tener archivos JSON en la carpeta data/' 
                         : searchQuery ? `No se encontraron resultados para "${searchQuery}"` : 'Selecciona otro sistema o busca otro juego'}
                 </p>
-                ${games.length === 0 ? `
-                    <div style="margin-top:20px;background:rgba(255,255,255,0.03);padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.05);">
-                        <p style="color:#888;font-size:0.85rem;">
-                            📁 Crea archivos JSON en la carpeta <code style="background:rgba(0,204,255,0.1);padding:2px 8px;border-radius:4px;color:#00ccff;">data/</code> 
-                            con el formato <code style="background:rgba(255,0,102,0.1);padding:2px 8px;border-radius:4px;color:#ff0066;">ps3.json</code>
-                        </p>
-                    </div>
-                ` : ''}
             </div>
         `;
         return;
@@ -426,7 +402,7 @@ function renderGames() {
     grid.innerHTML = html;
 }
 
-function updateCount() {
+function updateGameCount() {
     gameCount.textContent = `${filteredGames.length} juegos`;
 }
 
@@ -435,52 +411,27 @@ function updateCount() {
 // ============================================================
 function getSystemColor(system) {
     const colors = {
-        'PS3': '#00ccff',
-        'PS2': '#ff0066',
-        'PSP': '#ffcc00',
-        'PS1': '#66ff66',
-        'PSX': '#66ff66',
-        'NES': '#ff4444',
-        'SNES': '#ff66ff',
-        'N64': '#ff8800',
-        'GAMEBOY': '#88ff88',
-        'GAMEBOY ADVANCE': '#44ddff',
-        'GAMEBOY COLOR': '#88dd88',
-        'SEGA GENESIS': '#ff44ff',
-        'DREAMCAST': '#ffcc44',
-        'SATURN': '#ff4488',
-        'SEGA CD': '#ff8844',
-        'SEGA 32X': '#ff44aa',
-        'NEOGEO': '#ffaa00',
-        'NEOGEO CD': '#ffaa44',
-        'NEOGEO POCKET': '#ffaa88',
-        'ATARI 2600': '#ff6644',
-        'ATARI 7800': '#ff6644',
-        'ATARI LYNX': '#ff8844',
-        'ATARI JAGUAR': '#ff6644',
-        '3DO': '#44ff88',
-        'WONDERSWAN': '#66ccff',
-        'WONDERSWAN COLOR': '#66ccff',
-        'PC ENGINE': '#ff44cc',
-        'PC ENGINE CD': '#ff44cc',
-        'MSX': '#44aaff',
-        'MSX2': '#44aaff',
-        'XBOX': '#44ff44',
-        'XBOX 360': '#44ff44',
-        'AMIGA': '#ff8844',
-        'C64': '#8888ff',
-        'WII': '#88ddff',
-        'WII U': '#88ddff',
-        'GAMECUBE': '#44dd88',
-        'DS': '#88ccff',
-        '3DS': '#88ccff',
-        'VIRTUAL BOY': '#ff4488',
-        'MASTER SYSTEM': '#ff66cc',
-        'GAME GEAR': '#ff66cc',
-        'SCUMMVM': '#66ff88',
-        'DOS': '#888888',
-        'MAME': '#ffaa44',
-        'FBNEO': '#ffaa44'
+        'PS3': '#00ccff', 'PS2': '#ff0066', 'PSP': '#ffcc00',
+        'PS1': '#66ff66', 'NES': '#ff4444', 'SNES': '#ff66ff',
+        'N64': '#ff8800', 'GAMEBOY': '#88ff88',
+        'GAMEBOY ADVANCE': '#44ddff', 'GAMEBOY COLOR': '#88dd88',
+        'SEGA GENESIS': '#ff44ff', 'DREAMCAST': '#ffcc44',
+        'SATURN': '#ff4488', 'SEGA CD': '#ff8844',
+        'SEGA 32X': '#ff44aa', 'NEOGEO': '#ffaa00',
+        'NEOGEO CD': '#ffaa44', 'NEOGEO POCKET': '#ffaa88',
+        'ATARI 2600': '#ff6644', 'ATARI 7800': '#ff6644',
+        'ATARI LYNX': '#ff8844', 'ATARI JAGUAR': '#ff6644',
+        '3DO': '#44ff88', 'WONDERSWAN': '#66ccff',
+        'WONDERSWAN COLOR': '#66ccff', 'PC ENGINE': '#ff44cc',
+        'PC ENGINE CD': '#ff44cc', 'MSX': '#44aaff',
+        'MSX2': '#44aaff', 'XBOX': '#44ff44',
+        'XBOX 360': '#44ff44', 'AMIGA': '#ff8844',
+        'C64': '#8888ff', 'WII': '#88ddff',
+        'WII U': '#88ddff', 'GAMECUBE': '#44dd88',
+        'DS': '#88ccff', '3DS': '#88ccff',
+        'VIRTUAL BOY': '#ff4488', 'MASTER SYSTEM': '#ff66cc',
+        'GAME GEAR': '#ff66cc', 'SCUMMVM': '#66ff88',
+        'DOS': '#888888', 'MAME': '#ffaa44', 'FBNEO': '#ffaa44'
     };
     return colors[system] || '#00ccff';
 }
@@ -489,7 +440,7 @@ function getSystemColor(system) {
 //  MODAL DE DETALLE
 // ============================================================
 function openModal(id) {
-    const game = games.find(g => (g.id || `game-${Math.random().toString(36).substr(2, 9)}`) === id);
+    const game = games.find(g => (g.id || '') === id);
     if (!game) return;
 
     const systemName = game.sistema || game.system || 'Desconocido';
@@ -517,7 +468,7 @@ function openModal(id) {
                 <div class="modal-system" style="border-color:${systemColor};color:${systemColor};">${systemName}</div>
                 <div class="modal-year">📅 ${year}</div>
                 <div class="modal-type">${type}</div>
-                ${game.genero ? `<div style="color:#888;font-size:0.85rem;">🎮 ${game.genero}</div>` : ''}
+                ${game.genero ? `<div style="color:#888;font-size:0.85rem;margin-top:4px;">🎮 ${game.genero}</div>` : ''}
                 ${game.desarrolladora ? `<div style="color:#888;font-size:0.85rem;">👨‍💻 ${game.desarrolladora}</div>` : ''}
                 <div class="modal-description">${description}</div>
             </div>
@@ -540,7 +491,7 @@ function closeModal() {
     document.body.style.overflow = '';
 }
 
-// Eventos del modal
+// Eventos modal
 modalClose.addEventListener('click', closeModal);
 modal.addEventListener('click', function(e) {
     if (e.target === this) closeModal();
@@ -550,7 +501,87 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ============================================================
-//  BÚSQUEDA Y SUGERENCIAS
+//  MODAL DE AJUSTES
+// ============================================================
+settingsBtn.addEventListener('click', function() {
+    renderSystemList();
+    settingsModal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+});
+
+settingsClose.addEventListener('click', function() {
+    settingsModal.classList.remove('show');
+    document.body.style.overflow = '';
+});
+
+settingsModal.addEventListener('click', function(e) {
+    if (e.target === this) {
+        settingsModal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+});
+
+addSystemSettingsBtn.addEventListener('click', addSystem);
+
+// ============================================================
+//  BACKUP - EXPORTAR / IMPORTAR
+// ============================================================
+function exportBackup() {
+    const data = {
+        systems: systems,
+        timestamp: new Date().toISOString(),
+        version: '1.0'
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `retro-vault-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importBackup(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (data.systems && Array.isArray(data.systems) && data.systems.length > 0) {
+                systems = data.systems;
+                saveSystems();
+                updateSystemSelect();
+                renderSystemChips();
+                renderSystemList();
+                // Recargar juegos con los nuevos sistemas
+                loadAllGames().then(() => {
+                    filterGames();
+                    updateGameCount();
+                    alert('✅ Backup importado correctamente.');
+                });
+            } else {
+                alert('❌ Archivo de backup inválido.');
+            }
+        } catch (error) {
+            alert('❌ Error al leer el archivo: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+exportBtn.addEventListener('click', exportBackup);
+importBtn.addEventListener('click', function() {
+    importFile.click();
+});
+importFile.addEventListener('change', function(e) {
+    if (this.files && this.files[0]) {
+        importBackup(this.files[0]);
+    }
+    this.value = '';
+});
+
+// ============================================================
+//  BÚSQUEDA
 // ============================================================
 let searchTimeout = null;
 
@@ -599,8 +630,9 @@ function showSuggestions(query) {
         const title = g.titulo || g.title || 'Sin título';
         const system = g.sistema || g.system || 'Desconocido';
         const cover = getCoverWithFallback(g);
+        const gameId = g.id || `game-${Math.random().toString(36).substr(2, 9)}`;
         return `
-            <div data-id="${g.id || 'game-' + Math.random().toString(36).substr(2, 9)}">
+            <div data-id="${gameId}">
                 <img src="${cover}" 
                      alt="${title}"
                      onerror="this.onerror=null; this.src='https://via.placeholder.com/32x32/1a1a2e/00ccff?text=?';" />
@@ -613,7 +645,7 @@ function showSuggestions(query) {
     suggestionsEl.querySelectorAll('div').forEach(el => {
         el.addEventListener('click', function() {
             const id = this.dataset.id;
-            const game = games.find(g => (g.id || `game-${Math.random().toString(36).substr(2, 9)}`) === id);
+            const game = games.find(g => (g.id || '') === id);
             if (game) {
                 const title = game.titulo || game.title || '';
                 searchInput.value = title;
@@ -626,7 +658,6 @@ function showSuggestions(query) {
     });
 }
 
-// Cerrar sugerencias al hacer clic fuera
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.search-wrapper') && !e.target.closest('.suggestions')) {
         suggestionsEl.classList.remove('show');
@@ -656,26 +687,23 @@ refreshBtn.addEventListener('click', function() {
 });
 
 // ============================================================
-//  AÑADIR SISTEMA
-// ============================================================
-addSystemBtn.addEventListener('click', addSystem);
-
-// ============================================================
 //  INICIO
 // ============================================================
 async function init() {
-    initSystems();
+    loadSystems();
+    updateSystemSelect();
+    renderSystemChips();
+    renderSystemList();
     await loadAllGames();
     filterGames();
-    renderSystemChips();
+    updateGameCount();
     
-    // Añadir la función openModal al ámbito global
     window.openModal = openModal;
 
     console.log('🎮 Retro Game Vault cargado');
     console.log(`📚 ${games.length} juegos en la librería`);
     console.log(`🕹️ ${systems.length} sistemas disponibles`);
-    console.log(`📂 Cargados: ${[...loadedSystems].join(', ')}`);
+    console.log(`📂 Cargados: ${[...loadedSystems].join(', ') || 'ninguno'}`);
     console.log(`🖼️ Portadas desde: https://thumbnails.libretro.com/`);
 }
 
