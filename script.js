@@ -13,190 +13,196 @@ const CONFIG = {
         'N64',
         'GAMEBOY',
         'GAMEBOY ADVANCE',
+        'GAMEBOY COLOR',
         'SEGA GENESIS',
         'DREAMCAST',
-        'SATURN'
+        'SATURN',
+        'NEOGEO',
+        'ATARI 2600'
     ],
     // Tipos de contenido
-    TYPES: ['ROM', 'Port', 'Homebrew', 'ISO', 'CHD']
+    TYPES: ['ROM', 'Port', 'Homebrew', 'ISO', 'CHD'],
+    // Ruta base para los archivos JSON
+    DATA_PATH: 'data/'
 };
 
 // ============================================================
-//  DATOS DE EJEMPLO (JUEGOS)
-//  ¡Puedes añadir más juegos aquí!
+//  MAPEO DE SISTEMAS A NOMBRES DE CARPETA DE LIBRETRO
 // ============================================================
-const GAME_LIBRARY = [
-    // PS3
-    {
-        id: 'the-last-of-us',
-        title: 'The Last of Us',
-        system: 'PS3',
-        type: 'ROM',
-        year: 2013,
-        description: 'En un mundo post-apocalíptico, Joel debe escoltar a una joven llamada Ellie a través de Estados Unidos. Una historia emocionante sobre supervivencia y conexión humana.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/00ccff?text=TLOU',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    {
-        id: 'god-of-war-3',
-        title: 'God of War III',
-        system: 'PS3',
-        type: 'ROM',
-        year: 2010,
-        description: 'Kratos continúa su venganza contra los dioses del Olimpo en esta épica conclusión de la trilogía original.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/ff0066?text=GOW3',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    // PS2
-    {
-        id: 'shadow-of-colossus',
-        title: 'Shadow of the Colossus',
-        system: 'PS2',
-        type: 'ROM',
-        year: 2005,
-        description: 'Un joven guerrero llamado Wander debe derrotar a 16 colosos gigantes para salvar a una doncella. Una obra maestra del arte y la narrativa.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/ffcc00?text=SOTC',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    {
-        id: 'final-fantasy-x',
-        title: 'Final Fantasy X',
-        system: 'PS2',
-        type: 'ROM',
-        year: 2001,
-        description: 'La historia de Tidus y Yuna en Spira, donde deben detener a Sin, una criatura que amenaza el mundo.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/00ccff?text=FFX',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    // PSP
-    {
-        id: 'crisis-core',
-        title: 'Crisis Core: Final Fantasy VII',
-        system: 'PSP',
-        type: 'ROM',
-        year: 2007,
-        description: 'El juego precuela de Final Fantasy VII, donde seguimos a Zack Fair, un soldado de Shinra, en su viaje.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/ff0066?text=CC',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    {
-        id: 'patapon',
-        title: 'Patapon',
-        system: 'PSP',
-        type: 'ROM',
-        year: 2007,
-        description: 'Un juego de ritmo y estrategia donde controlas a un ejército de criaturas usando tambores.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/ffcc00?text=PATAPON',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    // PS1
-    {
-        id: 'metal-gear-solid',
-        title: 'Metal Gear Solid',
-        system: 'PS1',
-        type: 'ROM',
-        year: 1998,
-        description: 'El legendario juego de sigilo de Hideo Kojima. Solid Snake debe infiltrarse en una base nuclear y detener a FOXHOUND.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/00ccff?text=MGS',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    {
-        id: 'castlevania-sotn',
-        title: 'Castlevania: Symphony of the Night',
-        system: 'PS1',
-        type: 'ROM',
-        year: 1997,
-        description: 'Alucard despierta en el castillo de Drácula. Un metroidvania clásico que redefinió el género.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/ff0066?text=CAS',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    // NES
-    {
-        id: 'super-mario-bros-3',
-        title: 'Super Mario Bros. 3',
-        system: 'NES',
-        type: 'ROM',
-        year: 1988,
-        description: 'Una de las mejores entregas de Mario. Con nuevos power-ups y mundos variados, es un clásico absoluto.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/ffcc00?text=SMB3',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    // GAMEBOY
-    {
-        id: 'pokemon-red',
-        title: 'Pokémon Red Version',
-        system: 'GAMEBOY',
-        type: 'ROM',
-        year: 1996,
-        description: 'El juego que inició la fiebre Pokémon. Atrapa, entrena y combate con más de 150 criaturas.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/ff0066?text=POKE',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    },
-    // Homebrew (ejemplo)
-    {
-        id: 'cave-story',
-        title: 'Cave Story',
-        system: 'PSP',
-        type: 'Homebrew',
-        year: 2004,
-        description: 'Un clásico de la escena homebrew. Un shooter de plataformas con una historia profunda y mecánicas adictivas.',
-        cover: 'https://via.placeholder.com/300x400/1a1a2e/00ccff?text=CAVE',
-        downloads: [
-            { label: 'Descarga 1 (Mega)', url: '#' },
-            { label: 'Descarga 2 (MediaFire)', url: '#' },
-            { label: 'Descarga 3 (Google Drive)', url: '#' }
-        ]
-    }
-];
+const systemMap = {
+    'PS3': 'Sony - PlayStation 3',
+    'PS2': 'Sony - PlayStation 2',
+    'PSP': 'Sony - PlayStation Portable',
+    'PS1': 'Sony - PlayStation',
+    'PSX': 'Sony - PlayStation',
+    'NES': 'Nintendo - Nintendo Entertainment System',
+    'SNES': 'Nintendo - Super Nintendo Entertainment System',
+    'N64': 'Nintendo - Nintendo 64',
+    'GAMEBOY': 'Nintendo - Game Boy',
+    'GAMEBOY ADVANCE': 'Nintendo - Game Boy Advance',
+    'GAMEBOY COLOR': 'Nintendo - Game Boy Color',
+    'SEGA GENESIS': 'Sega - Mega Drive - Genesis',
+    'DREAMCAST': 'Sega - Dreamcast',
+    'SATURN': 'Sega - Saturn',
+    'SEGA CD': 'Sega - Mega-CD - Sega CD',
+    'SEGA 32X': 'Sega - 32X',
+    'NEOGEO': 'SNK - Neo Geo',
+    'NEOGEO CD': 'SNK - Neo Geo CD',
+    'NEOGEO POCKET': 'SNK - Neo Geo Pocket',
+    'ATARI 2600': 'Atari - 2600',
+    'ATARI 7800': 'Atari - 7800',
+    'ATARI LYNX': 'Atari - Lynx',
+    'ATARI JAGUAR': 'Atari - Jaguar',
+    '3DO': 'The 3DO Company - 3DO',
+    'WONDERSWAN': 'Bandai - WonderSwan',
+    'WONDERSWAN COLOR': 'Bandai - WonderSwan Color',
+    'PC ENGINE': 'NEC - PC Engine - TurboGrafx 16',
+    'PC ENGINE CD': 'NEC - PC Engine CD - TurboGrafx-CD',
+    'MSX': 'Microsoft - MSX',
+    'MSX2': 'Microsoft - MSX2',
+    'XBOX': 'Microsoft - Xbox',
+    'XBOX 360': 'Microsoft - Xbox 360',
+    'AMIGA': 'Commodore - Amiga',
+    'C64': 'Commodore - 64',
+    'WII': 'Nintendo - Wii',
+    'WII U': 'Nintendo - Wii U',
+    'GAMECUBE': 'Nintendo - GameCube',
+    'DS': 'Nintendo - Nintendo DS',
+    '3DS': 'Nintendo - Nintendo 3DS',
+    'VIRTUAL BOY': 'Nintendo - Virtual Boy',
+    'MASTER SYSTEM': 'Sega - Master System - Mark III',
+    'GAME GEAR': 'Sega - Game Gear',
+    'SCUMMVM': 'ScummVM',
+    'DOS': 'DOS',
+    'MAME': 'MAME',
+    'FBNEO': 'FBNeo - Arcade Games'
+};
 
 // ============================================================
-//  ESTADO
+//  FUNCIÓN PARA GENERAR URL DE PORTADA DESDE LIBRETRO
 // ============================================================
-let games = [...GAME_LIBRARY];
+function getCoverUrl(game) {
+    const systemFolder = systemMap[game.sistema] || game.sistema || game.system;
+    // Usar el título del juego (puede venir como titulo o title)
+    const title = game.titulo || game.title || '';
+    // Limpiar el nombre del juego para la URL
+    const cleanTitle = title
+        .replace(/[:\/\\*?"<>|]/g, '') // Eliminar caracteres inválidos
+        .replace(/\s+/g, ' ') // Espacios normales
+        .trim();
+    
+    // Si el juego tiene cover personalizado, usarlo
+    if (game.cover && game.cover.startsWith('http')) {
+        return game.cover;
+    }
+    
+    // Si tiene cover en formato Libretro (ej: "covers/ps3/Last of Us.png")
+    if (game.cover && game.cover.includes('covers/')) {
+        // Intentar construir URL desde Libretro
+        const fileName = game.cover.split('/').pop();
+        const cleanFileName = fileName.replace('.png', '').replace('.webp', '');
+        return `https://thumbnails.libretro.com/${systemFolder}/Named_Boxarts/${cleanFileName}.png`;
+    }
+    
+    // Fallback: usar el título limpio
+    return `https://thumbnails.libretro.com/${systemFolder}/Named_Boxarts/${cleanTitle}.png`;
+}
+
+// ============================================================
+//  FUNCIÓN PARA OBTENER PORTADA CON FALLBACK
+// ============================================================
+function getCoverWithFallback(game) {
+    const url = getCoverUrl(game);
+    // Si el juego tiene una portada manual (URL directa)
+    if (game.cover && game.cover.startsWith('http')) {
+        return game.cover;
+    }
+    return url;
+}
+
+// ============================================================
+//  CARGA DINÁMICA DE JUEGOS DESDE JSON
+// ============================================================
+let games = [];
 let filteredGames = [];
 let systems = [...CONFIG.SYSTEMS];
 let currentSystem = 'all';
 let searchQuery = '';
+let isLoading = false;
+let loadedSystems = new Set();
+
+async function loadGamesFromSystem(system) {
+    const systemKey = system.toLowerCase();
+    const url = `${CONFIG.DATA_PATH}${systemKey}.json`;
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn(`No se pudo cargar ${systemKey}.json`);
+            return [];
+        }
+        const data = await response.json();
+        
+        // Asegurar que los juegos tengan el campo sistema
+        if (data.juegos && Array.isArray(data.juegos)) {
+            // Mapear los campos del JSON al formato interno
+            return data.juegos.map(juego => ({
+                id: juego.id || `${systemKey}-${juego.titulo?.toLowerCase().replace(/\s+/g, '-')}`,
+                titulo: juego.titulo || juego.title || 'Sin título',
+                title: juego.titulo || juego.title || 'Sin título', // Para compatibilidad
+                sistema: data.sistema || system,
+                system: data.sistema || system, // Para compatibilidad
+                year: juego.año || juego.year || 0,
+                genero: juego.genero || 'Desconocido',
+                desarrolladora: juego.desarrolladora || 'Desconocida',
+                descripcion: juego.descripcion || 'Sin descripción disponible',
+                description: juego.descripcion || 'Sin descripción disponible',
+                cover: juego.cover || '',
+                downloads: [
+                    { label: '🔵 Descarga Directa', url: juego.download || '#' },
+                    { label: '🟢 Torrent', url: juego.torrent || '#' },
+                    { label: '🟠 Magnet Link', url: juego.magnet || '#' }
+                ]
+            }));
+        }
+        return [];
+    } catch (error) {
+        console.error(`Error cargando ${systemKey}.json:`, error);
+        return [];
+    }
+}
+
+async function loadAllGames() {
+    if (isLoading) return;
+    isLoading = true;
+    
+    const allGames = [];
+    const systemPromises = systems.map(system => loadGamesFromSystem(system));
+    
+    try {
+        const results = await Promise.all(systemPromises);
+        results.forEach((gamesList, index) => {
+            if (gamesList.length > 0) {
+                allGames.push(...gamesList);
+                loadedSystems.add(systems[index]);
+            }
+        });
+        
+        games = allGames;
+        console.log(`✅ Cargados ${games.length} juegos de ${loadedSystems.size} sistemas`);
+        return games;
+    } catch (error) {
+        console.error('Error cargando juegos:', error);
+        return [];
+    } finally {
+        isLoading = false;
+    }
+}
+
+// ============================================================
+//  ESTADO
+// ============================================================
+let favoriteGames = new Set();
 
 // ============================================================
 //  DOM REFS
@@ -257,10 +263,13 @@ function updateSystemSelect() {
 function renderSystemChips() {
     systemChips.innerHTML = '';
     systems.sort().forEach(sys => {
+        const isLoaded = loadedSystems.has(sys);
         const chip = document.createElement('span');
-        chip.className = `system-chip ${currentSystem === sys ? 'active' : ''}`;
+        chip.className = `system-chip ${currentSystem === sys ? 'active' : ''} ${!isLoaded ? 'loading' : ''}`;
+        chip.dataset.system = sys;
         chip.innerHTML = `
             ${sys}
+            ${!isLoaded ? ' ⏳' : ''}
             <span class="delete-chip" data-system="${sys}">✕</span>
         `;
         chip.addEventListener('click', function(e) {
@@ -283,7 +292,7 @@ function renderSystemChips() {
 //  AÑADIR / ELIMINAR SISTEMAS
 // ============================================================
 function addSystem() {
-    const newSystem = prompt('Introduce el nombre del nuevo sistema (ej: SEGA SATURN):');
+    const newSystem = prompt('🎮 Introduce el nombre del nuevo sistema (ej: SEGA SATURN):');
     if (!newSystem || newSystem.trim() === '') return;
     const sys = newSystem.trim().toUpperCase();
     if (systems.includes(sys)) {
@@ -293,25 +302,31 @@ function addSystem() {
     systems.push(sys);
     saveSystems();
     initSystems();
-    // Añadir automáticamente al select
     systemSelect.value = sys;
     currentSystem = sys;
     renderSystemChips();
-    filterGames();
+    // Recargar juegos incluyendo el nuevo sistema
+    loadAllGames().then(() => {
+        filterGames();
+        renderSystemChips();
+    });
 }
 
 function removeSystem(sys) {
     if (systems.length <= 1) {
-        alert('Debes tener al menos un sistema.');
+        alert('⚠️ Debes tener al menos un sistema.');
         return;
     }
-    if (!confirm(`¿Eliminar sistema "${sys}"?`)) return;
+    if (!confirm(`¿Eliminar sistema "${sys}" y sus juegos?`)) return;
     systems = systems.filter(s => s !== sys);
+    loadedSystems.delete(sys);
     saveSystems();
     if (currentSystem === sys) {
         currentSystem = 'all';
         systemSelect.value = 'all';
     }
+    // Recargar juegos sin el sistema eliminado
+    games = games.filter(g => g.sistema !== sys && g.system !== sys);
     initSystems();
     filterGames();
 }
@@ -324,13 +339,14 @@ function filterGames() {
     const system = currentSystem;
 
     filteredGames = games.filter(game => {
-        // Filtro por sistema
-        if (system !== 'all' && game.system !== system) return false;
-        // Filtro por búsqueda
+        if (system !== 'all' && game.sistema !== system && game.system !== system) return false;
         if (query) {
-            const matchTitle = game.title.toLowerCase().includes(query);
-            const matchSystem = game.system.toLowerCase().includes(query);
-            const matchDesc = game.description.toLowerCase().includes(query);
+            const title = (game.titulo || game.title || '').toLowerCase();
+            const systemName = (game.sistema || game.system || '').toLowerCase();
+            const desc = (game.descripcion || game.description || '').toLowerCase();
+            const matchTitle = title.includes(query);
+            const matchSystem = systemName.includes(query);
+            const matchDesc = desc.includes(query);
             if (!matchTitle && !matchSystem && !matchDesc) return false;
         }
         return true;
@@ -344,14 +360,35 @@ function filterGames() {
 //  RENDERIZAR JUEGOS
 // ============================================================
 function renderGames() {
+    if (isLoading) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <h3>Cargando juegos...</h3>
+                <p style="color:#555577;">Espera mientras se cargan los datos</p>
+            </div>
+        `;
+        return;
+    }
+
     if (filteredGames.length === 0) {
         grid.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-gamepad"></i>
-                <h3>No hay juegos que coincidan</h3>
+                <h3>${games.length === 0 ? '📂 No hay juegos cargados' : 'No hay juegos que coincidan'}</h3>
                 <p style="color:#555577;margin-top:10px;">
-                    ${searchQuery ? `No se encontraron resultados para "${searchQuery}"` : 'Añade juegos a la librería'}
+                    ${games.length === 0 
+                        ? 'Asegúrate de tener archivos JSON en la carpeta data/ con los juegos' 
+                        : searchQuery ? `No se encontraron resultados para "${searchQuery}"` : 'Selecciona otro sistema o busca otro juego'}
                 </p>
+                ${games.length === 0 ? `
+                    <div style="margin-top:20px;background:rgba(255,255,255,0.03);padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.05);">
+                        <p style="color:#888;font-size:0.85rem;">
+                            📁 Crea archivos JSON en la carpeta <code style="background:rgba(0,204,255,0.1);padding:2px 8px;border-radius:4px;color:#00ccff;">data/</code> 
+                            con el formato <code style="background:rgba(255,0,102,0.1);padding:2px 8px;border-radius:4px;color:#ff0066;">ps3.json</code>
+                        </p>
+                    </div>
+                ` : ''}
             </div>
         `;
         return;
@@ -359,18 +396,28 @@ function renderGames() {
 
     let html = '';
     for (const game of filteredGames) {
-        const systemColor = getSystemColor(game.system);
+        const systemName = game.sistema || game.system || 'Desconocido';
+        const systemColor = getSystemColor(systemName);
+        const coverUrl = getCoverWithFallback(game);
+        const title = game.titulo || game.title || 'Sin título';
+        const year = game.year || game.año || 'N/A';
+        const type = game.type || 'ROM';
+        const gameId = game.id || `game-${Math.random().toString(36).substr(2, 9)}`;
+        
         html += `
-            <div class="crypto-card" data-id="${game.id}" onclick="openModal('${game.id}')">
+            <div class="crypto-card" data-id="${gameId}" onclick="openModal('${gameId}')">
                 <div class="card-image">
-                    <img src="${game.cover}" alt="${game.title}" loading="lazy" />
-                    <span class="system-badge" style="border-color:${systemColor};color:${systemColor};">${game.system}</span>
+                    <img src="${coverUrl}" 
+                         alt="${title}" 
+                         loading="lazy"
+                         onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400/1a1a2e/00ccff?text=${encodeURIComponent(title)}';" />
+                    <span class="system-badge" style="border-color:${systemColor};color:${systemColor};">${systemName}</span>
                 </div>
                 <div class="card-body">
-                    <h3>${game.title}</h3>
+                    <h3>${title}</h3>
                     <div class="card-meta">
-                        <span class="year">${game.year}</span>
-                        <span class="type">${game.type}</span>
+                        <span class="year">📅 ${year}</span>
+                        <span class="type">${type}</span>
                     </div>
                 </div>
             </div>
@@ -384,7 +431,7 @@ function updateCount() {
 }
 
 // ============================================================
-//  COLORES POR SISTEMA (efecto visual)
+//  COLORES POR SISTEMA
 // ============================================================
 function getSystemColor(system) {
     const colors = {
@@ -392,14 +439,48 @@ function getSystemColor(system) {
         'PS2': '#ff0066',
         'PSP': '#ffcc00',
         'PS1': '#66ff66',
+        'PSX': '#66ff66',
         'NES': '#ff4444',
         'SNES': '#ff66ff',
         'N64': '#ff8800',
         'GAMEBOY': '#88ff88',
         'GAMEBOY ADVANCE': '#44ddff',
+        'GAMEBOY COLOR': '#88dd88',
         'SEGA GENESIS': '#ff44ff',
         'DREAMCAST': '#ffcc44',
-        'SATURN': '#ff4488'
+        'SATURN': '#ff4488',
+        'SEGA CD': '#ff8844',
+        'SEGA 32X': '#ff44aa',
+        'NEOGEO': '#ffaa00',
+        'NEOGEO CD': '#ffaa44',
+        'NEOGEO POCKET': '#ffaa88',
+        'ATARI 2600': '#ff6644',
+        'ATARI 7800': '#ff6644',
+        'ATARI LYNX': '#ff8844',
+        'ATARI JAGUAR': '#ff6644',
+        '3DO': '#44ff88',
+        'WONDERSWAN': '#66ccff',
+        'WONDERSWAN COLOR': '#66ccff',
+        'PC ENGINE': '#ff44cc',
+        'PC ENGINE CD': '#ff44cc',
+        'MSX': '#44aaff',
+        'MSX2': '#44aaff',
+        'XBOX': '#44ff44',
+        'XBOX 360': '#44ff44',
+        'AMIGA': '#ff8844',
+        'C64': '#8888ff',
+        'WII': '#88ddff',
+        'WII U': '#88ddff',
+        'GAMECUBE': '#44dd88',
+        'DS': '#88ccff',
+        '3DS': '#88ccff',
+        'VIRTUAL BOY': '#ff4488',
+        'MASTER SYSTEM': '#ff66cc',
+        'GAME GEAR': '#ff66cc',
+        'SCUMMVM': '#66ff88',
+        'DOS': '#888888',
+        'MAME': '#ffaa44',
+        'FBNEO': '#ffaa44'
     };
     return colors[system] || '#00ccff';
 }
@@ -408,27 +489,42 @@ function getSystemColor(system) {
 //  MODAL DE DETALLE
 // ============================================================
 function openModal(id) {
-    const game = games.find(g => g.id === id);
+    const game = games.find(g => (g.id || `game-${Math.random().toString(36).substr(2, 9)}`) === id);
     if (!game) return;
 
-    const systemColor = getSystemColor(game.system);
+    const systemName = game.sistema || game.system || 'Desconocido';
+    const systemColor = getSystemColor(systemName);
+    const coverUrl = getCoverWithFallback(game);
+    const title = game.titulo || game.title || 'Sin título';
+    const year = game.year || game.año || 'N/A';
+    const type = game.type || 'ROM';
+    const description = game.descripcion || game.description || 'Sin descripción disponible.';
+    const downloads = game.downloads || [
+        { label: '🔵 Descarga Directa', url: '#' },
+        { label: '🟢 Torrent', url: '#' },
+        { label: '🟠 Magnet Link', url: '#' }
+    ];
 
     modalBody.innerHTML = `
         <div class="modal-top">
             <div class="modal-cover">
-                <img src="${game.cover}" alt="${game.title}" />
+                <img src="${coverUrl}" 
+                     alt="${title}"
+                     onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400/1a1a2e/ff0066?text=${encodeURIComponent(title)}';" />
             </div>
             <div class="modal-info">
-                <h2>${game.title}</h2>
-                <div class="modal-system" style="border-color:${systemColor};color:${systemColor};">${game.system}</div>
-                <div class="modal-year">📅 ${game.year}</div>
-                <div class="modal-type">${game.type}</div>
-                <div class="modal-description">${game.description}</div>
+                <h2>${title}</h2>
+                <div class="modal-system" style="border-color:${systemColor};color:${systemColor};">${systemName}</div>
+                <div class="modal-year">📅 ${year}</div>
+                <div class="modal-type">${type}</div>
+                ${game.genero ? `<div style="color:#888;font-size:0.85rem;">🎮 ${game.genero}</div>` : ''}
+                ${game.desarrolladora ? `<div style="color:#888;font-size:0.85rem;">👨‍💻 ${game.desarrolladora}</div>` : ''}
+                <div class="modal-description">${description}</div>
             </div>
         </div>
         <div class="download-buttons">
-            ${game.downloads.map((dl, i) => `
-                <a href="${dl.url}" target="_blank" class="btn-download ${i === 0 ? 'primary' : i === 1 ? 'secondary' : 'tertiary'}">
+            ${downloads.map((dl, i) => `
+                <a href="${dl.url || '#'}" target="_blank" class="btn-download ${i === 0 ? 'primary' : i === 1 ? 'secondary' : 'tertiary'}">
                     <i class="fas fa-download"></i> ${dl.label}
                 </a>
             `).join('')}
@@ -487,7 +583,11 @@ searchBtn.addEventListener('click', function() {
 function showSuggestions(query) {
     const q = query.toLowerCase();
     const matches = games
-        .filter(g => g.title.toLowerCase().includes(q) || g.system.toLowerCase().includes(q))
+        .filter(g => {
+            const title = (g.titulo || g.title || '').toLowerCase();
+            const system = (g.sistema || g.system || '').toLowerCase();
+            return title.includes(q) || system.includes(q);
+        })
         .slice(0, 8);
 
     if (matches.length === 0) {
@@ -495,22 +595,33 @@ function showSuggestions(query) {
         return;
     }
 
-    suggestionsEl.innerHTML = matches.map(g => `
-        <div data-id="${g.id}">
-            <img src="${g.cover}" alt="${g.title}" />
-            <span><strong>${g.title}</strong> <span style="color:#666;font-size:0.8rem;">${g.system}</span></span>
-        </div>
-    `).join('');
+    suggestionsEl.innerHTML = matches.map(g => {
+        const title = g.titulo || g.title || 'Sin título';
+        const system = g.sistema || g.system || 'Desconocido';
+        const cover = getCoverWithFallback(g);
+        return `
+            <div data-id="${g.id || 'game-' + Math.random().toString(36).substr(2, 9)}">
+                <img src="${cover}" 
+                     alt="${title}"
+                     onerror="this.onerror=null; this.src='https://via.placeholder.com/32x32/1a1a2e/00ccff?text=?';" />
+                <span><strong>${title}</strong> <span style="color:#666;font-size:0.8rem;">${system}</span></span>
+            </div>
+        `;
+    }).join('');
     suggestionsEl.classList.add('show');
 
     suggestionsEl.querySelectorAll('div').forEach(el => {
         el.addEventListener('click', function() {
             const id = this.dataset.id;
-            searchInput.value = games.find(g => g.id === id).title;
-            searchQuery = searchInput.value;
-            suggestionsEl.classList.remove('show');
-            filterGames();
-            openModal(id);
+            const game = games.find(g => (g.id || `game-${Math.random().toString(36).substr(2, 9)}`) === id);
+            if (game) {
+                const title = game.titulo || game.title || '';
+                searchInput.value = title;
+                searchQuery = title;
+                suggestionsEl.classList.remove('show');
+                filterGames();
+                openModal(id);
+            }
         });
     });
 }
@@ -552,16 +663,20 @@ addSystemBtn.addEventListener('click', addSystem);
 // ============================================================
 //  INICIO
 // ============================================================
-function init() {
+async function init() {
     initSystems();
+    await loadAllGames();
     filterGames();
-
-    // Añadir la función openModal al ámbito global para que funcione desde el onclick
+    renderSystemChips();
+    
+    // Añadir la función openModal al ámbito global
     window.openModal = openModal;
 
     console.log('🎮 Retro Game Vault cargado');
     console.log(`📚 ${games.length} juegos en la librería`);
     console.log(`🕹️ ${systems.length} sistemas disponibles`);
+    console.log(`📂 Cargados: ${[...loadedSystems].join(', ')}`);
+    console.log(`🖼️ Portadas desde: https://thumbnails.libretro.com/`);
 }
 
 init();
