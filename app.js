@@ -1,79 +1,73 @@
-window.addEventListener("DOMContentLoaded", async () => {
+window.addEventListener("DOMContentLoaded", () => {
 
-    const refreshButton = document.getElementById("refreshButton");
-    const searchInput = document.getElementById("searchCoin");
+    const refreshButton =
+        document.getElementById("refreshButton");
 
-    // ==========================
-    // Actualizar Radar
-    // ==========================
+    const searchInput =
+        document.getElementById("searchCoin");
 
-    refreshButton.addEventListener("click", async () => {
+    async function loadRadar(force = false) {
 
         refreshButton.disabled = true;
         refreshButton.textContent = "Actualizando...";
 
-        await Radar.load();
+        try {
 
-        refreshButton.disabled = false;
-        refreshButton.textContent = "Actualizar Radar";
+            await Radar.load(force);
 
-    });
+            const bitcoin = API.getBitcoin();
 
-    // ==========================
-    // Buscar moneda
-    // ==========================
+            if (bitcoin) {
 
-    searchInput.addEventListener("keyup", () => {
-
-        const value = searchInput.value.toLowerCase();
-
-        const rows = document.querySelectorAll("#scannerTable tr");
-
-        rows.forEach(row => {
-
-            if (row.innerText.toLowerCase().includes(value)) {
-
-                row.style.display = "";
-
-            } else {
-
-                row.style.display = "none";
+                document.getElementById("btcPrice").textContent =
+                    new Intl.NumberFormat("es-ES", {
+                        style: "currency",
+                        currency: "USD",
+                        maximumFractionDigits: 0
+                    }).format(bitcoin.current_price);
 
             }
 
-        });
+        } catch (error) {
 
-    });
+            console.error(error);
 
-    // ==========================
-    // Datos BTC
-    // ==========================
+        } finally {
 
-    const btc = API.getBitcoin();
+            refreshButton.disabled = false;
+            refreshButton.textContent = "Actualizar Radar";
 
-    if (btc) {
-
-        document.getElementById("btcPrice").textContent =
-            "$" + btc.current_price.toLocaleString();
+        }
 
     }
 
-    // ==========================
-    // Fear & Greed (temporal)
-    // ==========================
+    refreshButton.addEventListener("click", () => {
+        loadRadar(true);
+    });
+
+    searchInput.addEventListener("input", () => {
+
+        const value =
+            searchInput.value.trim().toLowerCase();
+
+        document
+            .querySelectorAll("#scannerTable tr")
+            .forEach(row => {
+
+                row.style.display =
+                    row.textContent
+                        .toLowerCase()
+                        .includes(value)
+                        ? ""
+                        : "none";
+
+            });
+
+    });
 
     document.getElementById("fearGreed").textContent = "--";
-
-    // ==========================
-    // Dominancia BTC (temporal)
-    // ==========================
-
     document.getElementById("btcDominance").textContent = "--";
 
-    // ==========================
-    // Cargar Radar
-    // ==========================
-
-    await Radar.load();
+    loadRadar(false);
 
 });
