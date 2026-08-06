@@ -1,59 +1,97 @@
-class Radar {
+class RadarService {
 
     constructor() {
         this.coins = [];
+        this.loading = false;
     }
 
-    //=========================================
-    // CARGAR RADAR
-    //=========================================
+    async load(force = false) {
 
-    async load() {
+        if (this.loading) {
+            return;
+        }
 
-        // Descarga y filtra desde CoinGecko
-        const market = await API.loadCoins();
+        this.loading = true;
 
-        // Score rápido SIN indicadores
-        market.forEach(coin => {
+        try {
 
-            const result = ScoreEngine.calculate(coin);
+            const market = await API.loadCoins(force);
 
-            coin.score = result.score;
-            coin.signal = result.signal;
-            coin.analysis = ScoreEngine.buildAnalysis(result);
+            if (!Array.isArray(market) || market.length === 0) {
 
-        });
+                this.showMessage(
+                    "No se recibieron monedas. CoinGecko puede haber limitado temporalmente las peticiones."
+                );
 
-        // Ordenar por score
-        market.sort((a, b) => b.score - a.score);
+                return;
 
-        // Quedarnos SOLO con el TOP
-        this.coins = market.slice(0, CONFIG.filters.maxResults);
+            }
 
-        // Ahora sí analizamos técnicamente esas monedas
-        await this.loadIndicators();
+            market.forEach(coin => {
 
-        // Pintar tabla
-        this.render();
+                const result = ScoreEngine.calculate(coin);
+
+                coin.score = result.score;
+                coin.signal = result.signal;
+                coin.analysis = ScoreEngine.buildAnalysis(result);
+                coin.indicators = null;
+
+            });
+
+            market.sort((a, b) => b.score - a.score);
+
+            this.coins = market.slice(
+                0,
+                CONFIG.filters.maxResults
+            );
+
+            // Mostrar inmediatamente datos de CoinGecko.
+            this.render();
+
+            // Seleccionar la primera moneda inmediatamente.
+            if (this.coins.length > 0) {
+                this.showDetails(this.coins[0]);
+            }
+
+            // Cargar indicadores sin bloquear la tabla.
+            await this.loadIndicators();
+
+        } catch (error) {
+
+            console.error("Error al cargar el radar:", error);
+
+            this.showMessage(
+                "No se pudo cargar el radar. Revisa la consola del navegador."
+            );
+
+        } finally {
+
+            this.loading = false;
+
+        }
 
     }
-
-    //=========================================
-    // ANALIZAR SOLO TOP25
-    //=========================================
 
     async loadIndicators() {
 
-        for (const coin of this.coins) {
+        const batchSize = 5;
 
-            try {
+        for (let start = 0; start < this.coins.length; start += batchSize) {
 
-                const indicators =
-                    await Indicators.analyze(
-                        coin.symbol
-                    );
+            const batch = this.coins.slice(
+                start,
+                start + batchSize
+            );
 
-                if (indicators) {
+            await Promise.allSettled(
+                batch.map(async coin => {
+
+                    const indicators =
+                        await Indicators.analyze(coin.symbol);
+
+                    if (!indicators) {
+                        return;
+                    }
 
                     coin.indicators = indicators;
 
@@ -64,177 +102,247 @@ class Radar {
                         );
 
                     coin.score = result.score;
-
                     coin.signal = result.signal;
-
                     coin.analysis =
                         ScoreEngine.buildAnalysis(result);
 
-                }
+                })
+            );
 
-            } catch (e) {
+            this.coins.sort((a, b) => b.score - a.score);
 
-                console.log(
-                    coin.symbol +
-                    " no disponible en Binance."
-                );
+            this.render();
 
-            }
+            await this.sleep(250);
 
         }
 
-        this.coins.sort((a, b) => b.score - a.score);
-
     }
-
-    //=========================================
-    // TABLA
-    //=========================================
 
     render() {
 
         const tbody =
-            document.getElementById(
-                "scannerTable"
-            );
+            document.getElementById("scannerTable");
+
+        if (!tbody) {
+            return;
+        }
 
         tbody.innerHTML = "";
 
         this.coins.forEach((coin, index) => {
 
-            const tr =
-                document.createElement("tr");
+            const row = document.createElement("tr");
 
-            tr.innerHTML = `
+            const change =
+                Number(coin.price_change_percentage_24h) || 0;
 
-<td>${index + 1}</td>
+            const rsi =
+                this.formatIndicator(
+                    coin.indicators?.rsi,
+                    1
+                );
 
-<td>
+            const macd = coin.indicators?.macd;
 
-<div style="display:flex;align-items:center;gap:10px;">
+            const macdText =
+                Number.isFinite(macd)
+                    ? macd >= 0
+                        ? "🟢 Alcista"
+                        : "🔴 Bajista"
+                    : "Analizando…";
 
-<img src="${coin.image}" width="28">
+            row.innerHTML = `
+                <td>${index + 1}</td>
 
-<strong>${coin.symbol.toUpperCase()}</strong>
+                <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <img
+                            src="${coin.image || ""}"
+                            width="28"
+                            height="28"
+                            alt=""
+                        >
+                        <strong>${coin.symbol.toUpperCase()}</strong>
+                    </div>
+                </td>
 
-</div>
+                <td>${this.formatPrice(coin.current_price)}</td>
 
-</td>
+                <td class="${change >= 0 ? "positive" : "negative"}">
+                    ${change >= 0 ? "+" : ""}${change.toFixed(2)}%
+                </td>
 
-<td>$${coin.current_price.toFixed(6)}</td>
+                <td>${API.money(coin.market_cap)}</td>
 
-<td class="${coin.price_change_percentage_24h >= 0 ? "positive":"negative"}">
+                <td>${API.money(coin.total_volume)}</td>
 
-${coin.price_change_percentage_24h.toFixed(2)}%
+                <td>${rsi}</td>
 
-</td>
+                <td>${macdText}</td>
 
-<td>${API.money(coin.market_cap)}</td>
+                <td><strong>${coin.score}</strong></td>
 
-<td>${API.money(coin.total_volume)}</td>
+                <td style="color:${coin.signal.color};font-weight:700;">
+                    ${coin.signal.text}
+                </td>
+            `;
 
-<td>
-
-${coin.indicators
-? coin.indicators.rsi.toFixed(1)
-: "--"}
-
-</td>
-
-<td>
-
-${coin.indicators
-? (coin.indicators.macd > 0 ? "🟢" : "🔴")
-: "--"}
-
-</td>
-
-<td>
-
-<strong>${coin.score}</strong>
-
-</td>
-
-<td style="color:${coin.signal.color};font-weight:bold;">
-
-${coin.signal.text}
-
-</td>
-
-`;
-
-            tr.onclick = () => {
-
+            row.addEventListener("click", () => {
                 this.showDetails(coin);
+            });
 
-            };
-
-            tbody.appendChild(tr);
+            tbody.appendChild(row);
 
         });
 
     }
 
-    //=========================================
-    // PANEL DERECHO
-    //=========================================
-
     showDetails(coin) {
 
-        document.getElementById("coinImage").src =
-            coin.image;
+        this.setText("coinName", coin.name);
+        this.setText("coinSymbol", coin.symbol.toUpperCase());
+        this.setText("coinScore", coin.score);
+        this.setText("coinSignal", coin.signal.text);
 
-        document.getElementById("coinName").textContent =
-            coin.name;
+        const image = document.getElementById("coinImage");
 
-        document.getElementById("coinSymbol").textContent =
-            coin.symbol.toUpperCase();
-
-        document.getElementById("coinScore").textContent =
-            coin.score;
-
-        document.getElementById("coinSignal").textContent =
-            coin.signal.text;
-
-        document.getElementById("detailPrice").textContent =
-            "$" + coin.current_price;
-
-        document.getElementById("detailCap").textContent =
-            API.money(coin.market_cap);
-
-        document.getElementById("detailSpot").textContent =
-            API.money(coin.total_volume);
-
-        document.getElementById("detailATH").textContent =
-            coin.ath_change_percentage.toFixed(2) + "%";
-
-        if (coin.indicators) {
-
-            document.getElementById("detailRSI").textContent =
-                coin.indicators.rsi.toFixed(2);
-
-            document.getElementById("detailMACD").textContent =
-                coin.indicators.macd.toFixed(4);
-
-            document.getElementById("detailStoch").textContent =
-                coin.indicators.stochastic.toFixed(2);
-
-            document.getElementById("detailEMA20").textContent =
-                coin.indicators.ema20.toFixed(4);
-
-            document.getElementById("detailEMA50").textContent =
-                coin.indicators.ema50.toFixed(4);
-
-            document.getElementById("detailEMA200").textContent =
-                coin.indicators.ema200.toFixed(4);
-
+        if (image) {
+            image.src = coin.image || "";
+            image.alt = coin.name || "";
         }
 
-        document.getElementById("analysisText").textContent =
-            coin.analysis;
+        this.setText(
+            "detailPrice",
+            this.formatPrice(coin.current_price)
+        );
+
+        this.setText(
+            "detailCap",
+            API.money(coin.market_cap)
+        );
+
+        this.setText(
+            "detailSpot",
+            API.money(coin.total_volume)
+        );
+
+        this.setText(
+            "detailATH",
+            Number.isFinite(Number(coin.ath_change_percentage))
+                ? `${Number(coin.ath_change_percentage).toFixed(2)}%`
+                : "--"
+        );
+
+        const indicators = coin.indicators;
+
+        this.setText(
+            "detailRSI",
+            this.formatIndicator(indicators?.rsi, 2)
+        );
+
+        this.setText(
+            "detailMACD",
+            this.formatIndicator(indicators?.macd, 6)
+        );
+
+        this.setText(
+            "detailStoch",
+            this.formatIndicator(indicators?.stochastic, 2)
+        );
+
+        this.setText(
+            "detailEMA20",
+            this.formatPrice(indicators?.ema20)
+        );
+
+        this.setText(
+            "detailEMA50",
+            this.formatPrice(indicators?.ema50)
+        );
+
+        this.setText(
+            "detailEMA200",
+            this.formatPrice(indicators?.ema200)
+        );
+
+        this.setText(
+            "analysisText",
+            coin.analysis ||
+                "Indicadores técnicos no disponibles para esta moneda."
+        );
+
+    }
+
+    showMessage(message) {
+
+        const tbody =
+            document.getElementById("scannerTable");
+
+        if (!tbody) {
+            return;
+        }
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" style="padding:30px;text-align:center;">
+                    ${message}
+                </td>
+            </tr>
+        `;
+
+    }
+
+    setText(id, value) {
+
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.textContent =
+                value === null ||
+                value === undefined ||
+                value === ""
+                    ? "--"
+                    : value;
+        }
+
+    }
+
+    formatIndicator(value, decimals = 2) {
+
+        const number = Number(value);
+
+        return Number.isFinite(number)
+            ? number.toFixed(decimals)
+            : "Analizando…";
+
+    }
+
+    formatPrice(value) {
+
+        const number = Number(value);
+
+        if (!Number.isFinite(number)) {
+            return "--";
+        }
+
+        return new Intl.NumberFormat("es-ES", {
+            style: "currency",
+            currency: "USD",
+            maximumFractionDigits:
+                number < 0.01 ? 8 : 4
+        }).format(number);
+
+    }
+
+    sleep(milliseconds) {
+
+        return new Promise(resolve =>
+            setTimeout(resolve, milliseconds)
+        );
 
     }
 
 }
 
-window.Radar = new Radar();
+window.Radar = new RadarService();
