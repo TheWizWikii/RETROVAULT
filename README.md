@@ -1,40 +1,40 @@
-# Altcoin Opportunity Radar
+# ⚡ CryptoNeon Dashboard
 
-https://thewizwikii.github.io/altcoin-opportunity-radar/
+Dashboard de criptomonedas con estilo cyberpunk/neon, indicadores técnicos (RSI, MACD, Estocástico) y puntuación de entrada.
 
-## Incluye
+## 🚀 Características
 
-- Indicador visual de Miedo y Codicia con histórico.
-- Precio y variación de Bitcoin.
-- Dos carteras separadas: **largo plazo** y **spot rápido/scalping**.
-- Alta, edición y borrado manual de posiciones.
-- Actualización automática de precio, valor y PnL mediante CoinGecko.
-- Presupuesto configurable para spot rápido.
-- Radar de microcaps conocidas con score orientativo.
-- Watchlist editable.
-- Diario de operaciones.
-- Exportación/importación de copia de seguridad.
+- Añadir/eliminar criptos con búsqueda y autocompletado
+- Marcar favoritas para scalp rápido
+- Información: precio, market cap, cambio 24h
+- Indicadores: RSI, MACD, Estocástico
+- Puntuación de entrada potencial (0-10)
+- Actualización automática cada 60 segundos
+- Diseño neon moderno con efectos glow
+- Datos en tiempo real vía CoinGecko (sin API key)
 
+## 📦 Instalación
 
-## Datos y privacidad
+1. Clona o descarga los archivos
+2. Sube a GitHub Pages o cualquier hosting estático
+3. ¡Listo! No necesita backend ni dependencias
 
-Las carteras, la watchlist y el diario se guardan en `localStorage`, es decir, únicamente en el navegador actual. Usa **Ajustes → Exportar datos** para crear copias.
+## 🔧 Personalización
 
-La web utiliza endpoints públicos de CoinGecko y Alternative.me. CoinGecko puede limitar las peticiones sin una clave Demo. Puedes introducir una clave Demo en Ajustes; no uses una clave Pro en una página pública.
+- Cambia `DEFAULT_CRYPTOS` en `script.js` para tus criptos por defecto
+- Ajusta `REFRESH_INTERVAL` (en milisegundos)
+- Modifica colores en `style.css` para cambiar el tema
 
-## Importante
+## 📊 APIs utilizadas
 
-El score del radar es un filtro matemático simple y no asesoramiento financiero. Una web estática no puede obtener datos premium de Coinglass, spot flow, funding o token unlocks sin una API autorizada y un backend que proteja las claves.
+- [CoinGecko API](https://www.coingecko.com/en/api) - gratuita, sin key
 
+## 📝 Notas
 
-## Alertas de objetivos
-Activa las notificaciones desde la sección Spot rápido. La app avisa cuando el precio actual alcanza el porcentaje objetivo. En una web estática de GitHub Pages las alertas funcionan mientras la página esté abierta; las alertas con la web cerrada requerirían un backend y notificaciones push.
+- Los indicadores se calculan en el frontend con velas de 30 días
+- La puntuación de entrada es orientativa, combina RSI, MACD, estocástico y cambio 24h
+- Los datos se guardan en `localStorage` de tu navegador
 
+---
 
-## Copias de seguridad completas
-
-- **Exportar TODO** descarga un JSON versionado con carteras, watchlist, diario, presupuesto, objetivos y ajustes locales.
-- **Importar TODO** restaura ese archivo en cualquier navegador u ordenador.
-- Antes de cada importación se crea automáticamente una copia de seguridad interna. Puedes recuperarla desde **Ajustes → Restaurar copia anterior**.
-- No utiliza Supabase, Firebase, login ni servidor. Todo se guarda en `localStorage`.
-- Sustituir los archivos de GitHub no borra tus datos mientras mantengas la misma URL y no borres los datos del navegador.
+Hecho con ❤️ y mucho neón

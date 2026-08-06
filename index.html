@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>⚡ Crypto Neon Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <!-- Google Font: Orbitron (futurista) -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- ===== HEADER ===== -->
+        <header>
+            <div class="logo">
+                <i class="fas fa-bolt"></i>
+                <h1>CRYPTO<span>NEON</span></h1>
+            </div>
+            <div class="header-controls">
+                <button id="refreshBtn" class="btn-neon" title="Actualizar ahora">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+                <span id="lastUpdate" class="last-update">⏱️ --:--:--</span>
+            </div>
+        </header>
+
+        <!-- ===== BARRA DE BÚSQUEDA Y AÑADIR ===== -->
+        <section class="add-section">
+            <div class="search-wrapper">
+                <input type="text" id="cryptoInput" placeholder="Ej: bitcoin, ethereum, solana..." />
+                <button id="addBtn" class="btn-neon btn-add">
+                    <i class="fas fa-plus-circle"></i> Añadir
+                </button>
+            </div>
+            <div class="filter-wrapper">
+                <button id="favoritesFilterBtn" class="btn-neon btn-filter">
+                    <i class="fas fa-star"></i> Solo Favoritas
+                </button>
+                <span id="cryptoCount" class="badge">0</span>
+            </div>
+        </section>
+
+        <!-- ===== SUGERENCIAS (autocompletado) ===== -->
+        <div id="suggestions" class="suggestions"></div>
+
+        <!-- ===== GRID DE TARJETAS ===== -->
+        <main id="cryptoGrid" class="crypto-grid">
+            <!-- Las tarjetas se generan dinámicamente con JS -->
+        </main>
+
+        <!-- ===== FOOTER ===== -->
+        <footer>
+            <p>Datos en tiempo real vía CoinGecko · Actualización automática cada 60s</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

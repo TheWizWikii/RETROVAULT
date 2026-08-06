@@ -1,0 +1,602 @@
+/* ====================================================
+   RESET Y BASE
+   ==================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0a0a0f;
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(0, 255, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(255, 0, 255, 0.03) 0%, transparent 50%);
+    font-family: 'Rajdhani', sans-serif;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ====================================================
+   TIPOGRAFÍA FUTURISTA
+   ==================================================== */
+h1, h2, h3, .logo, .btn-neon {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+}
+
+/* ====================================================
+   HEADER
+   ==================================================== */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0 30px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo i {
+    font-size: 2.2rem;
+    color: #00ffff;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.logo h1 {
+    font-size: 1.8rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #00ffff, #ff00ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.logo h1 span {
+    -webkit-text-fill-color: #00ffff;
+    text-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.last-update {
+    font-size: 0.85rem;
+    color: #8888aa;
+    font-family: 'Rajdhani', sans-serif;
+    background: rgba(0, 255, 255, 0.05);
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+/* ====================================================
+   BOTONES NEON
+   ==================================================== */
+.btn-neon {
+    background: transparent;
+    border: 2px solid #00ffff;
+    color: #00ffff;
+    padding: 10px 24px;
+    border-radius: 50px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 1px;
+}
+
+.btn-neon:hover {
+    background: #00ffff;
+    color: #0a0a0f;
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.4);
+    transform: scale(1.02);
+}
+
+.btn-neon i {
+    font-size: 1rem;
+}
+
+.btn-add {
+    border-color: #ff00ff;
+    color: #ff00ff;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.1);
+}
+
+.btn-add:hover {
+    background: #ff00ff;
+    color: #0a0a0f;
+    box-shadow: 0 0 40px rgba(255, 0, 255, 0.4);
+}
+
+.btn-filter {
+    border-color: #ffcc00;
+    color: #ffcc00;
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.1);
+}
+
+.btn-filter:hover {
+    background: #ffcc00;
+    color: #0a0a0f;
+    box-shadow: 0 0 40px rgba(255, 204, 0, 0.4);
+}
+
+.btn-filter.active {
+    background: #ffcc00;
+    color: #0a0a0f;
+    box-shadow: 0 0 40px rgba(255, 204, 0, 0.3);
+}
+
+.badge {
+    background: rgba(0, 255, 255, 0.1);
+    color: #00ffff;
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    font-weight: 600;
+}
+
+/* ====================================================
+   SECCIÓN DE AÑADIR
+   ==================================================== */
+.add-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 25px 0 10px;
+    align-items: center;
+}
+
+.search-wrapper {
+    flex: 1;
+    min-width: 250px;
+    display: flex;
+    gap: 10px;
+}
+
+.search-wrapper input {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 50px;
+    border: 2px solid rgba(0, 255, 255, 0.2);
+    background: rgba(0, 255, 255, 0.03);
+    color: #e0e0e0;
+    font-size: 1rem;
+    font-family: 'Rajdhani', sans-serif;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.search-wrapper input:focus {
+    border-color: #00ffff;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+    background: rgba(0, 255, 255, 0.05);
+}
+
+.search-wrapper input::placeholder {
+    color: #555577;
+}
+
+.filter-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ====================================================
+   SUGERENCIAS (autocompletado)
+   ==================================================== */
+.suggestions {
+    background: rgba(10, 10, 15, 0.95);
+    border: 1px solid rgba(0, 255, 255, 0.15);
+    border-radius: 16px;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 5px;
+    display: none;
+    position: relative;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.suggestions.show {
+    display: block;
+}
+
+.suggestions div {
+    padding: 12px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.suggestions div:hover {
+    background: rgba(0, 255, 255, 0.1);
+    color: #00ffff;
+}
+
+.suggestions div:last-child {
+    border-bottom: none;
+}
+
+/* ====================================================
+   GRID DE TARJETAS
+   ==================================================== */
+.crypto-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    margin: 30px 0 40px;
+}
+
+/* ====================================================
+   TARJETA INDIVIDUAL
+   ==================================================== */
+.crypto-card {
+    background: rgba(10, 10, 18, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 22px 24px 24px;
+    border: 1px solid rgba(0, 255, 255, 0.08);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+}
+
+.crypto-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00ffff, #ff00ff, transparent);
+    opacity: 0.5;
+}
+
+.crypto-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(0, 255, 255, 0.25);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(0, 255, 255, 0.03);
+}
+
+/* Cabecera de tarjeta */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.card-header .name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.card-header .name img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.card-header .name h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.card-header .name .symbol {
+    font-size: 0.8rem;
+    color: #8888aa;
+    font-weight: 400;
+}
+
+.card-header .actions {
+    display: flex;
+    gap: 8px;
+}
+
+.card-header .actions button {
+    background: transparent;
+    border: none;
+    color: #555577;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    padding: 4px;
+}
+
+.card-header .actions .fav-btn {
+    color: #555577;
+}
+
+.card-header .actions .fav-btn.active {
+    color: #ffcc00;
+    text-shadow: 0 0 20px rgba(255, 204, 0, 0.4);
+}
+
+.card-header .actions .delete-btn {
+    color: #553333;
+}
+
+.card-header .actions .delete-btn:hover {
+    color: #ff4444;
+    transform: scale(1.1);
+}
+
+/* Precio principal */
+.price-main {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Orbitron', sans-serif;
+    color: #ffffff;
+    margin: 8px 0 4px;
+    letter-spacing: -0.5px;
+}
+
+.price-main .usd {
+    font-size: 1rem;
+    color: #8888aa;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 400;
+    margin-left: 6px;
+}
+
+.change-24h {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 50px;
+    display: inline-block;
+    margin: 4px 0 14px;
+}
+
+.change-24h.positive {
+    color: #00ff88;
+    background: rgba(0, 255, 136, 0.08);
+    border: 1px solid rgba(0, 255, 136, 0.15);
+}
+
+.change-24h.negative {
+    color: #ff4466;
+    background: rgba(255, 68, 102, 0.08);
+    border: 1px solid rgba(255, 68, 102, 0.15);
+}
+
+/* Market Cap */
+.market-cap {
+    font-size: 0.85rem;
+    color: #8888aa;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding-bottom: 14px;
+}
+
+.market-cap span {
+    color: #ccccdd;
+    font-weight: 600;
+}
+
+/* Indicadores grid */
+.indicators {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.indicator-item {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.indicator-item .label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    color: #666688;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.indicator-item .value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: 'Orbitron', sans-serif;
+    margin-top: 2px;
+}
+
+/* Colores para valores de indicadores */
+.indicator-item .value.bullish {
+    color: #00ff88;
+}
+.indicator-item .value.bearish {
+    color: #ff4466;
+}
+.indicator-item .value.neutral {
+    color: #ffcc00;
+}
+
+/* Puntuación de entrada */
+.score-badge {
+    grid-column: span 2;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    padding: 10px 12px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    margin-top: 2px;
+}
+
+.score-badge .label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    color: #666688;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.score-badge .value {
+    font-size: 1.5rem;
+    font-weight: 900;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.score-badge .value.high {
+    color: #00ff88;
+}
+.score-badge .value.medium {
+    color: #ffcc00;
+}
+.score-badge .value.low {
+    color: #ff4466;
+}
+
+/* ====================================================
+   ESTADO DE CARGA / VACÍO
+   ==================================================== */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 20px;
+    color: #555577;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: #333355;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    font-size: 1.4rem;
+    color: #777799;
+}
+
+.loading-card {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: #555577;
+    font-size: 1.2rem;
+}
+
+.loading-card i {
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ====================================================
+   ANIMACIONES
+   ==================================================== */
+@keyframes pulseGlow {
+    0%, 100% { text-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
+    50% { text-shadow: 0 0 40px rgba(0, 255, 255, 0.8), 0 0 80px rgba(0, 255, 255, 0.2); }
+}
+
+/* Scroll personalizado */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+    background: #00ffff;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+}
+
+/* ====================================================
+   RESPONSIVE
+   ==================================================== */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .logo h1 {
+        font-size: 1.4rem;
+    }
+
+    .add-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-wrapper {
+        flex-direction: column;
+    }
+
+    .filter-wrapper {
+        justify-content: space-between;
+    }
+
+    .crypto-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .indicators {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .price-main {
+        font-size: 1.6rem;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+
+    .crypto-card {
+        padding: 16px;
+    }
+
+    .indicators {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .indicator-item {
+        padding: 8px 10px;
+    }
+
+    .indicator-item .value {
+        font-size: 0.9rem;
+    }
+}
