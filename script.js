@@ -5,7 +5,8 @@ const CONFIG = {
     SYSTEMS: [
         'PS3', 'PS2', 'PSP', 'PS1', 'NES', 'SNES', 'N64',
         'GAMEBOY', 'GAMEBOY ADVANCE', 'GAMEBOY COLOR',
-        'SEGA GENESIS', 'DREAMCAST', 'SATURN'
+        'SEGA GENESIS', 'DREAMCAST', 'SATURN',
+        'XBOX 360'
     ],
     DATA_PATH: 'data/'
 };
@@ -28,6 +29,7 @@ const systemMap = {
     'SEGA GENESIS': 'Sega - Mega Drive - Genesis',
     'DREAMCAST': 'Sega - Dreamcast',
     'SATURN': 'Sega - Saturn',
+    'XBOX 360': 'Microsoft - Xbox 360',
     // Minúsculas (para compatibilidad)
     'ps3': 'Sony - PlayStation 3',
     'ps2': 'Sony - PlayStation 2',
@@ -41,7 +43,8 @@ const systemMap = {
     'gameboy color': 'Nintendo - Game Boy Color',
     'sega genesis': 'Sega - Mega Drive - Genesis',
     'dreamcast': 'Sega - Dreamcast',
-    'saturn': 'Sega - Saturn'
+    'saturn': 'Sega - Saturn',
+    'xbox 360': 'Microsoft - Xbox 360'
 };
 
 // ============================================================
