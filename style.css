@@ -324,52 +324,30 @@ header {
 }
 
 /* ====================================================
-   GRID DE JUEGOS (tarjetas estilo neon)
-   ==================================================== */
-.crypto-grid {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 20px;
-    margin: 20px 0 40px;
-}
-
-/* ====================================================
    TARJETA DE JUEGO (estilo neon)
    ==================================================== */
-.crypto-card {
-    /* Fondo semitransparente con efecto cristal (glassmorphism) */
-    background: rgba(10, 10, 18, 0.7);
+.crypto-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    /* 
+       🟢 auto-fill: Ajusta automáticamente el número de columnas
+       🟢 minmax(280px, 1fr): 
+           - Mínimo 280px (más pequeño que antes 300px, permite más columnas)
+           - Máximo 1fr (ocupa el espacio disponible)
+       🟢 Cambia 280px por un número mayor (ej: 320px) para tarjetas más anchas
+       🟢 Cambia 280px por un número menor (ej: 240px) para más columnas
+    */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     
     /* 
-       🟢 blur(10px): Desenfoque del fondo detrás de la tarjeta
-       🟢 Aumenta a 20px para más efecto glass
-       🟢 Elimina con backdrop-filter: none;
+       🟢 gap: Espacio entre tarjetas (horizontal y vertical)
+       🟢 Aumenta a 30px para más separación
+       🟢 Reduce a 16px para tarjetas más juntas
     */
-    backdrop-filter: blur(10px);
+    gap: 24px;
     
-    /* Bordes redondeados de la tarjeta */
-    border-radius: 20px;
-    
-    /* Oculta el contenido que sobresale (útil para imágenes) */
-    overflow: hidden;
-    
-    /* Borde sutil de la tarjeta */
-    border: 1px solid rgba(0, 204, 255, 0.08);
-    
-    /* Sombra de la tarjeta */
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    
-    /* 
-       🟢 Transición suave para hover
-       🟢 Cambia 0.4s por 0.6s para más lentitud
-       🟢 Cambia 0.2s para más rapidez
-    */
-    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    
-    /* Cursor de mano al pasar (indica que es clicable) */
-    cursor: pointer;
-    
-    /* Permite posicionar elementos dentro de forma absoluta */
-    position: relative;
+    /* Margen superior e inferior del grid */
+    margin: 20px 0 40px;
 }
 
 /* ====================================================
