@@ -46,6 +46,9 @@ const systemMap = {
     'xbox 360': 'Microsoft - Xbox 360'
 };
 
+// ============================================================
+//  FUNCIÓN PARA PORTADAS (CORREGIDA)
+// ============================================================
 function getCoverUrl(game) {
     const systemName = game.sistema || game.system || '';
     const systemKey = systemName.toLowerCase();
@@ -75,6 +78,14 @@ function getCoverUrl(game) {
     const encodedFolder = encodeURIComponent(systemFolder);
     const encodedTitle = encodeURIComponent(cleanTitle);
     return `https://thumbnails.libretro.com/${encodedFolder}/Named_Boxarts/${encodedTitle}.png`;
+}
+
+function getCoverWithFallback(game) {
+    // Si tiene cover personalizado (URL o ruta local), devolverlo directamente
+    if (game.cover && (game.cover.startsWith('http') || game.cover.startsWith('covers/'))) {
+        return game.cover;
+    }
+    return getCoverUrl(game);
 }
 
 // ============================================================
@@ -187,17 +198,15 @@ async function loadGamesFromSystem(system) {
 // ============================================================
 function processGameData(data, system) {
     if (data.juegos && Array.isArray(data.juegos)) {
-        // Crear clave única para el sistema (sin espacios)
         const systemKey = system.toLowerCase().replace(/\s/g, '');
         
         return data.juegos.map(juego => {
-            // ID ÚNICO: combina sistema + ID original
             const uniqueId = juego.id 
                 ? `${systemKey}-${juego.id}` 
                 : `${systemKey}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
             
             return {
-                id: uniqueId,  // ← ID ÚNICO GLOBAL
+                id: uniqueId,
                 titulo: juego.titulo || juego.title || 'Sin título',
                 title: juego.titulo || juego.title || 'Sin título',
                 sistema: data.sistema || system,
@@ -209,7 +218,6 @@ function processGameData(data, system) {
                 description: juego.descripcion || 'Sin descripción disponible',
                 cover: juego.cover || '',
                 type: juego.type || 'ROM',
-                // Conservamos el ID original por si se necesita
                 originalId: juego.id || null,
                 downloads: [
                     { label: '🔵 Descarga Directa', url: juego.download || '#' },
@@ -273,7 +281,6 @@ const modal = document.getElementById('gameModal');
 const modalBody = document.getElementById('modalBody');
 const modalClose = document.querySelector('.modal-close');
 
-// Crear contenedor de paginación si no existe
 function createPaginationContainer() {
     let container = document.getElementById('pagination');
     if (!container) {
@@ -545,7 +552,6 @@ function getSystemColor(system) {
 //  MODAL DE DETALLE
 // ============================================================
 function openModal(id) {
-    // Buscar por ID único (que incluye el sistema)
     const game = games.find(g => (g.id || '').toString() === id.toString());
     if (!game) {
         console.warn('Juego no encontrado:', id);
