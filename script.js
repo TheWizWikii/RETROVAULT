@@ -26,68 +26,31 @@ const systemMap = {
     'GAMEBOY COLOR': 'Nintendo - Game Boy Color',
     'SEGA GENESIS': 'Sega - Mega Drive - Genesis',
     'DREAMCAST': 'Sega - Dreamcast',
-    'SATURN': 'Sega - Saturn',
-    'SEGA CD': 'Sega - Mega-CD - Sega CD',
-    'SEGA 32X': 'Sega - 32X',
-    'NEOGEO': 'SNK - Neo Geo',
-    'NEOGEO CD': 'SNK - Neo Geo CD',
-    'NEOGEO POCKET': 'SNK - Neo Geo Pocket',
-    'ATARI 2600': 'Atari - 2600',
-    'ATARI 7800': 'Atari - 7800',
-    'ATARI LYNX': 'Atari - Lynx',
-    'ATARI JAGUAR': 'Atari - Jaguar',
-    '3DO': 'The 3DO Company - 3DO',
-    'WONDERSWAN': 'Bandai - WonderSwan',
-    'WONDERSWAN COLOR': 'Bandai - WonderSwan Color',
-    'PC ENGINE': 'NEC - PC Engine - TurboGrafx 16',
-    'PC ENGINE CD': 'NEC - PC Engine CD - TurboGrafx-CD',
-    'MSX': 'Microsoft - MSX',
-    'MSX2': 'Microsoft - MSX2',
-    'XBOX': 'Microsoft - Xbox',
-    'XBOX 360': 'Microsoft - Xbox 360',
-    'AMIGA': 'Commodore - Amiga',
-    'C64': 'Commodore - 64',
-    'WII': 'Nintendo - Wii',
-    'WII U': 'Nintendo - Wii U',
-    'GAMECUBE': 'Nintendo - GameCube',
-    'DS': 'Nintendo - Nintendo DS',
-    '3DS': 'Nintendo - Nintendo 3DS',
-    'VIRTUAL BOY': 'Nintendo - Virtual Boy',
-    'MASTER SYSTEM': 'Sega - Master System - Mark III',
-    'GAME GEAR': 'Sega - Game Gear',
-    'SCUMMVM': 'ScummVM',
-    'DOS': 'DOS',
-    'MAME': 'MAME',
-    'FBNEO': 'FBNeo - Arcade Games'
+    'SATURN': 'Sega - Saturn'
 };
 
 // ============================================================
-//  FUNCIÓN PARA PORTADAS (CORREGIDA)
+//  FUNCIÓN PARA PORTADAS
 // ============================================================
 function getCoverUrl(game) {
     const systemName = game.sistema || game.system || '';
     const systemFolder = systemMap[systemName] || systemName;
-    const title = game.titulo || game.title || '';
-    const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
     
-    // Si tiene cover personalizado (URL directa)
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
     
-    // Si tiene cover con nombre de archivo (ej: "The Last of Us (USA).png")
     if (game.cover && game.cover.endsWith('.png')) {
         const fileName = game.cover.replace('.png', '').replace('.webp', '');
         return `https://thumbnails.libretro.com/${encodeURIComponent(systemFolder)}/Named_Boxarts/${encodeURIComponent(fileName)}.png`;
     }
     
-    // Intentar con el título limpio
-    const encodedTitle = encodeURIComponent(cleanTitle);
-    return `https://thumbnails.libretro.com/${encodeURIComponent(systemFolder)}/Named_Boxarts/${encodedTitle}.png`;
+    const title = game.titulo || game.title || '';
+    const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+    return `https://thumbnails.libretro.com/${encodeURIComponent(systemFolder)}/Named_Boxarts/${encodeURIComponent(cleanTitle)}.png`;
 }
 
 function getCoverWithFallback(game) {
-    // Si tiene cover personalizado, usarlo
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
@@ -112,10 +75,7 @@ async function loadGamesFromSystem(system) {
     try {
         const response = await fetch(url, {
             cache: 'no-store',
-            headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache'
-            }
+            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
         });
         if (!response.ok) {
             console.warn(`⚠️ No se pudo cargar ${systemKey}.json`);
@@ -186,7 +146,6 @@ const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
 const systemSelect = document.getElementById('systemSelect');
 const systemChips = document.getElementById('systemChips');
-const addSystemBtn = document.getElementById('addSystemBtn');
 const addSystemSettingsBtn = document.getElementById('addSystemSettingsBtn');
 const refreshBtn = document.getElementById('refreshBtn');
 const settingsBtn = document.getElementById('settingsBtn');
@@ -248,11 +207,7 @@ function renderSystemChips() {
         const chip = document.createElement('span');
         chip.className = `system-chip ${currentSystem === sys ? 'active' : ''}`;
         chip.dataset.system = sys;
-        chip.textContent = sys;
-        if (!isLoaded) {
-            chip.classList.add('loading');
-            chip.textContent = `${sys} ⏳`;
-        }
+        chip.textContent = isLoaded ? sys : `${sys} ⏳`;
         chip.addEventListener('click', function() {
             currentSystem = this.dataset.system;
             systemSelect.value = currentSystem;
@@ -346,7 +301,7 @@ function filterGames() {
 }
 
 // ============================================================
-//  RENDERIZAR JUEGOS (CORREGIDO - TARJETAS CLICABLES)
+//  RENDERIZAR JUEGOS (CON CLIC CORREGIDO)
 // ============================================================
 function renderGames() {
     if (isLoading) {
@@ -384,8 +339,9 @@ function renderGames() {
         const type = game.type || 'ROM';
         const gameId = game.id || `game-${Math.random().toString(36).substr(2, 9)}`;
         
+        // Guardamos el ID en el elemento para poder recuperarlo después
         html += `
-            <div class="crypto-card" data-id="${gameId}" onclick="window.openModal('${gameId}')">
+            <div class="crypto-card" data-game-id="${gameId}">
                 <div class="card-image">
                     <img src="${coverUrl}" 
                          alt="${title}" 
@@ -404,6 +360,16 @@ function renderGames() {
         `;
     }
     grid.innerHTML = html;
+
+    // AÑADIR EVENTOS CLICK DESPUÉS DE RENDERIZAR
+    document.querySelectorAll('.crypto-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const gameId = this.dataset.gameId;
+            if (gameId) {
+                openModal(gameId);
+            }
+        });
+    });
 }
 
 function updateGameCount() {
@@ -420,22 +386,7 @@ function getSystemColor(system) {
         'N64': '#ff8800', 'GAMEBOY': '#88ff88',
         'GAMEBOY ADVANCE': '#44ddff', 'GAMEBOY COLOR': '#88dd88',
         'SEGA GENESIS': '#ff44ff', 'DREAMCAST': '#ffcc44',
-        'SATURN': '#ff4488', 'SEGA CD': '#ff8844',
-        'SEGA 32X': '#ff44aa', 'NEOGEO': '#ffaa00',
-        'NEOGEO CD': '#ffaa44', 'NEOGEO POCKET': '#ffaa88',
-        'ATARI 2600': '#ff6644', 'ATARI 7800': '#ff6644',
-        'ATARI LYNX': '#ff8844', 'ATARI JAGUAR': '#ff6644',
-        '3DO': '#44ff88', 'WONDERSWAN': '#66ccff',
-        'WONDERSWAN COLOR': '#66ccff', 'PC ENGINE': '#ff44cc',
-        'PC ENGINE CD': '#ff44cc', 'MSX': '#44aaff',
-        'MSX2': '#44aaff', 'XBOX': '#44ff44',
-        'XBOX 360': '#44ff44', 'AMIGA': '#ff8844',
-        'C64': '#8888ff', 'WII': '#88ddff',
-        'WII U': '#88ddff', 'GAMECUBE': '#44dd88',
-        'DS': '#88ccff', '3DS': '#88ccff',
-        'VIRTUAL BOY': '#ff4488', 'MASTER SYSTEM': '#ff66cc',
-        'GAME GEAR': '#ff66cc', 'SCUMMVM': '#66ff88',
-        'DOS': '#888888', 'MAME': '#ffaa44', 'FBNEO': '#ffaa44'
+        'SATURN': '#ff4488'
     };
     return colors[system] || '#00ccff';
 }
@@ -498,7 +449,9 @@ function closeModal() {
     document.body.style.overflow = '';
 }
 
-// Eventos modal
+// ============================================================
+//  EVENTOS MODAL
+// ============================================================
 modalClose.addEventListener('click', closeModal);
 modal.addEventListener('click', function(e) {
     if (e.target === this) closeModal();
@@ -531,7 +484,7 @@ settingsModal.addEventListener('click', function(e) {
 addSystemSettingsBtn.addEventListener('click', addSystem);
 
 // ============================================================
-//  BACKUP - EXPORTAR / IMPORTAR
+//  BACKUP
 // ============================================================
 function exportBackup() {
     const data = {
@@ -539,7 +492,6 @@ function exportBackup() {
         timestamp: new Date().toISOString(),
         version: '1.0'
     };
-    
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -638,7 +590,7 @@ function showSuggestions(query) {
         const cover = getCoverWithFallback(g);
         const gameId = g.id || `game-${Math.random().toString(36).substr(2, 9)}`;
         return `
-            <div data-id="${gameId}">
+            <div data-game-id="${gameId}">
                 <img src="${cover}" 
                      alt="${title}"
                      onerror="this.onerror=null; this.src='https://via.placeholder.com/32x32/1a1a2e/00ccff?text=?';" />
@@ -650,7 +602,7 @@ function showSuggestions(query) {
 
     suggestionsEl.querySelectorAll('div').forEach(el => {
         el.addEventListener('click', function() {
-            const id = this.dataset.id;
+            const id = this.dataset.gameId;
             const game = games.find(g => (g.id || '').toString() === id.toString());
             if (game) {
                 const title = game.titulo || game.title || '';
@@ -703,22 +655,10 @@ async function init() {
     await loadAllGames();
     filterGames();
     updateGameCount();
-    
-    // Exponer openModal globalmente para que funcione desde el onclick
-    window.openModal = function(id) {
-        const game = games.find(g => (g.id || '').toString() === id.toString());
-        if (!game) {
-            console.warn('Juego no encontrado:', id);
-            return;
-        }
-        openModal(id);
-    };
 
     console.log('🎮 Retro Game Vault cargado');
     console.log(`📚 ${games.length} juegos en la librería`);
     console.log(`🕹️ ${systems.length} sistemas disponibles`);
-    console.log(`📂 Cargados: ${[...loadedSystems].join(', ') || 'ninguno'}`);
-    console.log(`🖼️ Portadas desde: https://thumbnails.libretro.com/`);
 }
 
 init();
