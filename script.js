@@ -8,14 +8,14 @@ const CONFIG = {
         'SEGA GENESIS', 'DREAMCAST', 'SATURN',
         'XBOX 360'
     ],
-    DATA_PATH: 'data/'
+    DATA_PATH: 'data/',
+    GAMES_PER_PAGE: 25
 };
 
 // ============================================================
-//  MAPEO DE SISTEMAS A LIBRETRO (con soporte mayúsculas/minúsculas)
+//  MAPEO DE SISTEMAS A LIBRETRO
 // ============================================================
 const systemMap = {
-    // Mayúsculas
     'PS3': 'Sony - PlayStation 3',
     'PS2': 'Sony - PlayStation 2',
     'PSP': 'Sony - PlayStation Portable',
@@ -30,7 +30,6 @@ const systemMap = {
     'DREAMCAST': 'Sega - Dreamcast',
     'SATURN': 'Sega - Saturn',
     'XBOX 360': 'Microsoft - Xbox 360',
-    // Minúsculas (para compatibilidad)
     'ps3': 'Sony - PlayStation 3',
     'ps2': 'Sony - PlayStation 2',
     'psp': 'Sony - PlayStation Portable',
@@ -48,29 +47,25 @@ const systemMap = {
 };
 
 // ============================================================
-//  FUNCIÓN PARA PORTADAS (LOCAL + LIBRETRO)
+//  FUNCIÓN PARA PORTADAS
 // ============================================================
 function getCoverUrl(game) {
     const systemName = game.sistema || game.system || '';
     const systemKey = systemName.toLowerCase();
     const systemFolder = systemMap[systemName] || systemMap[systemKey] || systemName;
     
-    // 1. URL personalizada
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
     
-    // 2. Ruta local completa
     if (game.cover && game.cover.startsWith('covers/')) {
         return game.cover;
     }
     
-    // 3. Nombre de archivo (busca en covers/[sistema]/)
     if (game.cover && (game.cover.endsWith('.png') || game.cover.endsWith('.webp'))) {
         return `covers/${systemKey}/${game.cover}`;
     }
     
-    // 4. FALLBACK: Libretro
     const title = game.titulo || game.title || '';
     const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
     const encodedFolder = encodeURIComponent(systemFolder);
@@ -96,9 +91,74 @@ let searchQuery = '';
 let isLoading = false;
 let loadedSystems = new Set();
 
+// ============================================================
+//  PAGINACIÓN
+// ============================================================
+let currentPage = 1;
+const gamesPerPage = CONFIG.GAMES_PER_PAGE;
+
+function getTotalPages() {
+    return Math.ceil(filteredGames.length / gamesPerPage) || 1;
+}
+
+function getPaginatedGames() {
+    const start = (currentPage - 1) * gamesPerPage;
+    const end = start + gamesPerPage;
+    return filteredGames.slice(start, end);
+}
+
+function renderPagination() {
+    const totalPages = getTotalPages();
+    const paginationContainer = document.getElementById('pagination');
+    if (!paginationContainer) return;
+
+    if (filteredGames.length === 0 || totalPages <= 1) {
+        paginationContainer.style.display = 'none';
+        return;
+    }
+
+    paginationContainer.style.display = 'flex';
+    paginationContainer.innerHTML = `
+        <button class="btn-neon btn-pagination" id="prevPageBtn" ${currentPage <= 1 ? 'disabled' : ''}>
+            <i class="fas fa-chevron-left"></i> Anterior
+        </button>
+        <span class="page-info">Página ${currentPage} de ${totalPages} (${filteredGames.length} juegos)</span>
+        <button class="btn-neon btn-pagination" id="nextPageBtn" ${currentPage >= totalPages ? 'disabled' : ''}>
+            Siguiente <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
+
+    document.getElementById('prevPageBtn')?.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            renderGames();
+            renderPagination();
+            scrollToTop();
+        }
+    });
+
+    document.getElementById('nextPageBtn')?.addEventListener('click', () => {
+        if (currentPage < getTotalPages()) {
+            currentPage++;
+            renderGames();
+            renderPagination();
+            scrollToTop();
+        }
+    });
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
+//  CARGA DE JUEGOS DESDE JSON
+// ============================================================
 async function loadGamesFromSystem(system) {
     const systemKey = system.toLowerCase();
-    const url = `${CONFIG.DATA_PATH}${systemKey}.json?t=${Date.now()}`;
+    // Reemplazar espacios para el nombre del archivo
+    const fileName = systemKey.replace(/\s/g, '');
+    const url = `${CONFIG.DATA_PATH}${fileName}.json?t=${Date.now()}`;
     
     try {
         const response = await fetch(url, {
@@ -106,37 +166,50 @@ async function loadGamesFromSystem(system) {
             headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
         });
         if (!response.ok) {
-            console.warn(`⚠️ No se pudo cargar ${systemKey}.json`);
-            return [];
+            // Intentar con el nombre con espacios
+            const urlWithSpaces = `${CONFIG.DATA_PATH}${systemKey}.json?t=${Date.now()}`;
+            const response2 = await fetch(urlWithSpaces, {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+            });
+            if (!response2.ok) {
+                console.warn(`⚠️ No se pudo cargar ${systemKey}.json`);
+                return [];
+            }
+            const data = await response2.json();
+            return processGameData(data, system);
         }
         const data = await response.json();
-        
-        if (data.juegos && Array.isArray(data.juegos)) {
-            return data.juegos.map(juego => ({
-                id: juego.id || `${systemKey}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-                titulo: juego.titulo || juego.title || 'Sin título',
-                title: juego.titulo || juego.title || 'Sin título',
-                sistema: data.sistema || system,
-                system: data.sistema || system,
-                year: juego.año || juego.year || 0,
-                genero: juego.genero || 'Desconocido',
-                desarrolladora: juego.desarrolladora || 'Desconocida',
-                descripcion: juego.descripcion || 'Sin descripción disponible',
-                description: juego.descripcion || 'Sin descripción disponible',
-                cover: juego.cover || '',
-                type: juego.type || 'ROM',
-                downloads: [
-                    { label: '🔵 Descarga Directa', url: juego.download || '#' },
-                    { label: '🟢 Torrent', url: juego.torrent || '#' },
-                    { label: '🟠 Magnet Link', url: juego.magnet || '#' }
-                ]
-            }));
-        }
-        return [];
+        return processGameData(data, system);
     } catch (error) {
         console.error(`❌ Error cargando ${systemKey}.json:`, error);
         return [];
     }
+}
+
+function processGameData(data, system) {
+    if (data.juegos && Array.isArray(data.juegos)) {
+        return data.juegos.map(juego => ({
+            id: juego.id || `${system.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            titulo: juego.titulo || juego.title || 'Sin título',
+            title: juego.titulo || juego.title || 'Sin título',
+            sistema: data.sistema || system,
+            system: data.sistema || system,
+            year: juego.año || juego.year || 0,
+            genero: juego.genero || 'Desconocido',
+            desarrolladora: juego.desarrolladora || 'Desconocida',
+            descripcion: juego.descripcion || 'Sin descripción disponible',
+            description: juego.descripcion || 'Sin descripción disponible',
+            cover: juego.cover || '',
+            type: juego.type || 'ROM',
+            downloads: [
+                { label: '🔵 Descarga Directa', url: juego.download || '#' },
+                { label: '🟢 Torrent', url: juego.torrent || '#' },
+                { label: '🟠 Magnet Link', url: juego.magnet || '#' }
+            ]
+        }));
+    }
+    return [];
 }
 
 async function loadAllGames() {
@@ -188,6 +261,30 @@ const suggestionsEl = document.getElementById('suggestions');
 const modal = document.getElementById('gameModal');
 const modalBody = document.getElementById('modalBody');
 const modalClose = document.querySelector('.modal-close');
+
+// Crear contenedor de paginación si no existe
+function createPaginationContainer() {
+    let container = document.getElementById('pagination');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'pagination';
+        container.className = 'pagination-container';
+        container.style.cssText = `
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0 40px;
+            padding: 15px;
+            flex-wrap: wrap;
+        `;
+        // Insertar después del grid
+        if (grid && grid.parentNode) {
+            grid.parentNode.insertBefore(container, grid.nextSibling);
+        }
+    }
+    return container;
+}
 
 // ============================================================
 //  SISTEMAS
@@ -279,6 +376,7 @@ function addSystem() {
     renderSystemChips();
     renderSystemList();
     loadAllGames().then(() => {
+        currentPage = 1;
         filterGames();
         renderSystemChips();
         updateGameCount();
@@ -299,6 +397,7 @@ function removeSystem(sys) {
         systemSelect.value = 'all';
     }
     games = games.filter(g => g.sistema !== sys && g.system !== sys);
+    currentPage = 1;
     updateSystemSelect();
     renderSystemChips();
     renderSystemList();
@@ -307,21 +406,18 @@ function removeSystem(sys) {
 }
 
 // ============================================================
-//  FILTRAR JUEGOS (CORREGIDO - IGNORA MAYÚSCULAS/MINÚSCULAS)
+//  FILTRAR JUEGOS
 // ============================================================
 function filterGames() {
     const query = searchQuery.toLowerCase().trim();
     const system = currentSystem;
 
     filteredGames = games.filter(game => {
-        // Normalizar: comparar en minúsculas
         const gameSystem = (game.sistema || game.system || '').toLowerCase();
         const filterSystem = system.toLowerCase();
         
-        // Filtro por sistema
         if (system !== 'all' && gameSystem !== filterSystem) return false;
         
-        // Filtro por búsqueda
         if (query) {
             const title = (game.titulo || game.title || '').toLowerCase();
             const systemName = (game.sistema || game.system || '').toLowerCase();
@@ -331,12 +427,14 @@ function filterGames() {
         return true;
     });
 
+    currentPage = 1;
     renderGames();
+    renderPagination();
     updateGameCount();
 }
 
 // ============================================================
-//  RENDERIZAR JUEGOS
+//  RENDERIZAR JUEGOS (CON PAGINACIÓN)
 // ============================================================
 function renderGames() {
     if (isLoading) {
@@ -364,8 +462,16 @@ function renderGames() {
         return;
     }
 
+    const paginatedGames = getPaginatedGames();
+    
+    if (paginatedGames.length === 0) {
+        currentPage = 1;
+        renderGames();
+        return;
+    }
+
     let html = '';
-    for (const game of filteredGames) {
+    for (const game of paginatedGames) {
         const systemName = game.sistema || game.system || 'Desconocido';
         const systemColor = getSystemColor(systemName);
         const coverUrl = getCoverWithFallback(game);
@@ -406,7 +512,8 @@ function renderGames() {
 }
 
 function updateGameCount() {
-    gameCount.textContent = `${filteredGames.length} juegos`;
+    const total = filteredGames.length;
+    gameCount.textContent = `${total} juegos`;
 }
 
 // ============================================================
@@ -419,7 +526,7 @@ function getSystemColor(system) {
         'N64': '#ff8800', 'GAMEBOY': '#88ff88',
         'GAMEBOY ADVANCE': '#44ddff', 'GAMEBOY COLOR': '#88dd88',
         'SEGA GENESIS': '#ff44ff', 'DREAMCAST': '#ffcc44',
-        'SATURN': '#ff4488'
+        'SATURN': '#ff4488', 'XBOX 360': '#44ff44'
     };
     return colors[system] || '#00ccff';
 }
@@ -546,6 +653,7 @@ function importBackup(file) {
                 renderSystemChips();
                 renderSystemList();
                 loadAllGames().then(() => {
+                    currentPage = 1;
                     filterGames();
                     updateGameCount();
                     alert('✅ Backup importado correctamente.');
@@ -672,6 +780,7 @@ refreshBtn.addEventListener('click', function() {
     searchQuery = '';
     currentSystem = 'all';
     systemSelect.value = 'all';
+    currentPage = 1;
     suggestionsEl.classList.remove('show');
     renderSystemChips();
     filterGames();
@@ -681,6 +790,9 @@ refreshBtn.addEventListener('click', function() {
 //  INICIO
 // ============================================================
 async function init() {
+    // Crear contenedor de paginación
+    createPaginationContainer();
+    
     loadSystems();
     updateSystemSelect();
     renderSystemChips();
@@ -689,9 +801,13 @@ async function init() {
     filterGames();
     updateGameCount();
 
+    // Exponer funciones globales para el modal
+    window.openModal = openModal;
+
     console.log('🎮 Retro Game Vault cargado');
     console.log(`📚 ${games.length} juegos en la librería`);
     console.log(`🕹️ ${systems.length} sistemas disponibles`);
+    console.log(`📄 ${CONFIG.GAMES_PER_PAGE} juegos por página`);
     console.log(`📂 Covers: Local (covers/) → URL personalizada → Libretro (fallback)`);
 }
 
