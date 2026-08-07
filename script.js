@@ -9,7 +9,7 @@ const CONFIG = {
         'XBOX 360'
     ],
     DATA_PATH: 'data/',
-    GAMES_PER_PAGE: 28
+    GAMES_PER_PAGE: 30
 };
 
 // ============================================================
