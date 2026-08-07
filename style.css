@@ -235,7 +235,7 @@ header {
 }
 
 /* ====================================================
-   CHIPS DE SISTEMAS (sin botón eliminar)
+   CHIPS DE SISTEMAS
    ==================================================== */
 .system-chips {
     display: flex;
@@ -324,7 +324,7 @@ header {
 }
 
 /* ====================================================
-   GRID DE JUEGOS (tarjetas más alargadas como crypto)
+   GRID DE JUEGOS (tarjetas estilo neon)
    ==================================================== */
 .crypto-grid {
     display: grid;
