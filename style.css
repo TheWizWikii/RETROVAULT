@@ -328,8 +328,24 @@ header {
    ==================================================== */
 .crypto-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    /* 
+       🟢 auto-fill: Ajusta automáticamente el número de columnas
+       🟢 minmax(280px, 1fr): 
+           - Mínimo 280px (más pequeño que antes 300px, permite más columnas)
+           - Máximo 1fr (ocupa el espacio disponible)
+       🟢 Cambia 280px por un número mayor (ej: 320px) para tarjetas más anchas
+       🟢 Cambia 280px por un número menor (ej: 240px) para más columnas
+    */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    
+    /* 
+       🟢 gap: Espacio entre tarjetas (horizontal y vertical)
+       🟢 Aumenta a 30px para más separación
+       🟢 Reduce a 16px para tarjetas más juntas
+    */
     gap: 24px;
+    
+    /* Margen superior e inferior del grid */
     margin: 20px 0 40px;
 }
 
@@ -337,17 +353,45 @@ header {
    TARJETA DE JUEGO (estilo neon)
    ==================================================== */
 .crypto-card {
+    /* Fondo semitransparente con efecto cristal (glassmorphism) */
     background: rgba(10, 10, 18, 0.7);
+    
+    /* 
+       🟢 blur(10px): Desenfoque del fondo detrás de la tarjeta
+       🟢 Aumenta a 20px para más efecto glass
+       🟢 Elimina con backdrop-filter: none;
+    */
     backdrop-filter: blur(10px);
+    
+    /* Bordes redondeados de la tarjeta */
     border-radius: 20px;
+    
+    /* Oculta el contenido que sobresale (útil para imágenes) */
     overflow: hidden;
+    
+    /* Borde sutil de la tarjeta */
     border: 1px solid rgba(0, 204, 255, 0.08);
+    
+    /* Sombra de la tarjeta */
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    
+    /* 
+       🟢 Transición suave para hover
+       🟢 Cambia 0.4s por 0.6s para más lentitud
+       🟢 Cambia 0.2s para más rapidez
+    */
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    
+    /* Cursor de mano al pasar (indica que es clicable) */
     cursor: pointer;
+    
+    /* Permite posicionar elementos dentro de forma absoluta */
     position: relative;
 }
 
+/* ====================================================
+   BORDE NEÓN SUPERIOR (efecto de luz en el borde)
+   ==================================================== */
 .crypto-card::before {
     content: '';
     position: absolute;
@@ -355,51 +399,96 @@ header {
     left: 0;
     right: 0;
     height: 2px;
+    /* 
+       🟢 Degradado neón: rosa → azul
+       🟢 Cambia #ff0066 por otro color para el neón izquierdo
+       🟢 Cambia #00ccff por otro color para el neón derecho
+    */
     background: linear-gradient(90deg, transparent, #ff0066, #00ccff, transparent);
     opacity: 0.3;
     z-index: 2;
 }
 
+/* ====================================================
+   EFECTO HOVER (al pasar el ratón)
+   ==================================================== */
 .crypto-card:hover {
+    /* 
+       🟢 Eleva la tarjeta -6px al hacer hover
+       🟢 Cambia a -10px para más elevación
+       🟢 Cambia a 0px para sin elevación
+    */
     transform: translateY(-6px);
+    
+    /* Borde más brillante al hacer hover */
     border-color: rgba(255, 0, 102, 0.25);
+    
+    /* Sombra más intensa al hacer hover */
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(255, 0, 102, 0.05);
 }
 
+/* El borde neón se vuelve más brillante al hacer hover */
 .crypto-card:hover::before {
     opacity: 1;
     animation: neonSlide 1.5s ease-in-out infinite;
 }
 
+/* ====================================================
+   ANIMACIÓN DEL BORDE NEÓN (se mueve de izquierda a derecha)
+   ==================================================== */
 @keyframes neonSlide {
     0% { background: linear-gradient(90deg, transparent, #ff0066, #00ccff, transparent); }
     50% { background: linear-gradient(90deg, #ff0066, #00ccff, #ff0066, transparent); }
     100% { background: linear-gradient(90deg, transparent, #ff0066, #00ccff, transparent); }
 }
 
+/* ====================================================
+   CONTENEDOR DE LA IMAGEN (portada del juego)
+   ==================================================== */
 .card-image {
     width: 100%;
-    height: 220px;
+    /* 
+       🟢 ALTURA DE LA IMAGEN (más alto = tarjeta más alargada)
+       🟢 220px = altura estándar
+       🟢 280px = más alargada (más imagen, menos texto)
+       🟢 180px = más cuadrada
+    */
+    height: 280px;  /* ← CAMBIADO DE 220px A 280px (más alargada) */
+    
     overflow: hidden;
     position: relative;
     background: rgba(0, 0, 0, 0.4);
 }
 
+/* ====================================================
+   IMAGEN DE LA PORTADA
+   ==================================================== */
 .card-image img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    
+    /* 
+       🟢 object-fit: cover = La imagen cubre todo el espacio (recorta bordes)
+       🟢 object-fit: contain = La imagen se ve COMPLETA (con bordes negros)
+       🟢 object-fit: fill = Estira la imagen (distorsiona)
+    */
+    object-fit: cover;  /* ← Cambia a 'contain' para ver la imagen completa */
+    
     transition: transform 0.5s ease;
 }
 
+/* La imagen se agranda ligeramente al hacer hover */
 .crypto-card:hover .card-image img {
     transform: scale(1.05);
 }
 
+/* ====================================================
+   BADGE DEL SISTEMA (etiqueta en la esquina superior derecha)
+   ==================================================== */
 .card-image .system-badge {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: 12px;       /* Distancia desde arriba */
+    right: 12px;     /* Distancia desde la derecha */
     padding: 4px 14px;
     border-radius: 50px;
     font-size: 0.65rem;
@@ -411,24 +500,46 @@ header {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     z-index: 3;
+    /* El color del borde y texto se aplica desde JavaScript */
 }
 
+/* ====================================================
+   CUERPO DE LA TARJETA (texto debajo de la imagen)
+   ==================================================== */
 .card-body {
+    /* 
+       🟢 padding: 16px 20px 20px = arriba, lados, abajo
+       🟢 Aumenta a 20px 24px 24px para más espacio interior
+       🟢 Reduce a 12px 16px 16px para menos espacio
+    */
     padding: 16px 20px 20px;
     background: rgba(10, 10, 18, 0.6);
 }
 
+/* ====================================================
+   TÍTULO DEL JUEGO
+   ==================================================== */
 .card-body h3 {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1.1rem;   /* Tamaño del título */
+    font-weight: 700;    /* Negrita */
     color: #ffffff;
     margin-bottom: 4px;
     font-family: 'Rajdhani', sans-serif;
+    
+    /* 
+       🟢 white-space: nowrap = el texto no salta de línea
+       🟢 overflow: hidden = oculta el texto que sobra
+       🟢 text-overflow: ellipsis = muestra "..." al final
+       🟢 Elimina estas 3 líneas para que el título ocupe 2 líneas
+    */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+/* ====================================================
+   META DATOS (año y tipo)
+   ==================================================== */
 .card-body .card-meta {
     display: flex;
     justify-content: space-between;
@@ -451,6 +562,53 @@ header {
     background: rgba(255, 0, 102, 0.1);
     color: #ff0066;
     border: 1px solid rgba(255, 0, 102, 0.1);
+}
+
+/* ====================================================
+   RESPONSIVE PARA MÓVILES Y TABLETS
+   ==================================================== */
+
+/* Tablets y pantallas medianas */
+@media (max-width: 768px) {
+    .crypto-grid {
+        /* En tablets: columnas más estrechas */
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
+    }
+    
+    .card-image {
+        height: 200px;  /* Altura más pequeña en tablets */
+    }
+    
+    .card-body h3 {
+        font-size: 0.95rem;
+    }
+    
+    .card-body .card-meta {
+        font-size: 0.7rem;
+    }
+}
+
+/* Móviles pequeños */
+@media (max-width: 480px) {
+    .crypto-grid {
+        /* En móviles: una sola columna */
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    
+    .card-image {
+        height: 240px;  /* Altura más grande en móvil para que se vea bien */
+    }
+    
+    .card-body {
+        padding: 14px 16px 16px;
+    }
+    
+    .card-body h3 {
+        font-size: 1rem;
+        white-space: normal;  /* Permite que el título ocupe 2 líneas en móvil */
+    }
 }
 
 /* ====================================================
