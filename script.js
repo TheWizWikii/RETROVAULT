@@ -152,11 +152,10 @@ function scrollToTop() {
 }
 
 // ============================================================
-//  CARGA DE JUEGOS DESDE JSON
+//  CARGA DE JUEGOS DESDE JSON (CON IDs ÚNICOS)
 // ============================================================
 async function loadGamesFromSystem(system) {
     const systemKey = system.toLowerCase();
-    // Reemplazar espacios para el nombre del archivo
     const fileName = systemKey.replace(/\s/g, '');
     const url = `${CONFIG.DATA_PATH}${fileName}.json?t=${Date.now()}`;
     
@@ -166,7 +165,6 @@ async function loadGamesFromSystem(system) {
             headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
         });
         if (!response.ok) {
-            // Intentar con el nombre con espacios
             const urlWithSpaces = `${CONFIG.DATA_PATH}${systemKey}.json?t=${Date.now()}`;
             const response2 = await fetch(urlWithSpaces, {
                 cache: 'no-store',
@@ -187,27 +185,42 @@ async function loadGamesFromSystem(system) {
     }
 }
 
+// ============================================================
+//  PROCESAR DATOS CON IDs ÚNICOS GLOBALES
+// ============================================================
 function processGameData(data, system) {
     if (data.juegos && Array.isArray(data.juegos)) {
-        return data.juegos.map(juego => ({
-            id: juego.id || `${system.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-            titulo: juego.titulo || juego.title || 'Sin título',
-            title: juego.titulo || juego.title || 'Sin título',
-            sistema: data.sistema || system,
-            system: data.sistema || system,
-            year: juego.año || juego.year || 0,
-            genero: juego.genero || 'Desconocido',
-            desarrolladora: juego.desarrolladora || 'Desconocida',
-            descripcion: juego.descripcion || 'Sin descripción disponible',
-            description: juego.descripcion || 'Sin descripción disponible',
-            cover: juego.cover || '',
-            type: juego.type || 'ROM',
-            downloads: [
-                { label: '🔵 Descarga Directa', url: juego.download || '#' },
-                { label: '🟢 Torrent', url: juego.torrent || '#' },
-                { label: '🟠 Magnet Link', url: juego.magnet || '#' }
-            ]
-        }));
+        // Crear clave única para el sistema (sin espacios)
+        const systemKey = system.toLowerCase().replace(/\s/g, '');
+        
+        return data.juegos.map(juego => {
+            // ID ÚNICO: combina sistema + ID original
+            const uniqueId = juego.id 
+                ? `${systemKey}-${juego.id}` 
+                : `${systemKey}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+            
+            return {
+                id: uniqueId,  // ← ID ÚNICO GLOBAL
+                titulo: juego.titulo || juego.title || 'Sin título',
+                title: juego.titulo || juego.title || 'Sin título',
+                sistema: data.sistema || system,
+                system: data.sistema || system,
+                year: juego.año || juego.year || 0,
+                genero: juego.genero || 'Desconocido',
+                desarrolladora: juego.desarrolladora || 'Desconocida',
+                descripcion: juego.descripcion || 'Sin descripción disponible',
+                description: juego.descripcion || 'Sin descripción disponible',
+                cover: juego.cover || '',
+                type: juego.type || 'ROM',
+                // Conservamos el ID original por si se necesita
+                originalId: juego.id || null,
+                downloads: [
+                    { label: '🔵 Descarga Directa', url: juego.download || '#' },
+                    { label: '🟢 Torrent', url: juego.torrent || '#' },
+                    { label: '🟠 Magnet Link', url: juego.magnet || '#' }
+                ]
+            };
+        });
     }
     return [];
 }
@@ -230,6 +243,7 @@ async function loadAllGames() {
         
         games = allGames;
         console.log(`✅ Cargados ${games.length} juegos de ${loadedSystems.size} sistemas`);
+        console.log(`🔑 IDs únicos generados para cada juego`);
         return games;
     } catch (error) {
         console.error('❌ Error cargando juegos:', error);
@@ -278,7 +292,6 @@ function createPaginationContainer() {
             padding: 15px;
             flex-wrap: wrap;
         `;
-        // Insertar después del grid
         if (grid && grid.parentNode) {
             grid.parentNode.insertBefore(container, grid.nextSibling);
         }
@@ -535,6 +548,7 @@ function getSystemColor(system) {
 //  MODAL DE DETALLE
 // ============================================================
 function openModal(id) {
+    // Buscar por ID único (que incluye el sistema)
     const game = games.find(g => (g.id || '').toString() === id.toString());
     if (!game) {
         console.warn('Juego no encontrado:', id);
@@ -790,7 +804,6 @@ refreshBtn.addEventListener('click', function() {
 //  INICIO
 // ============================================================
 async function init() {
-    // Crear contenedor de paginación
     createPaginationContainer();
     
     loadSystems();
@@ -801,13 +814,13 @@ async function init() {
     filterGames();
     updateGameCount();
 
-    // Exponer funciones globales para el modal
     window.openModal = openModal;
 
     console.log('🎮 Retro Game Vault cargado');
     console.log(`📚 ${games.length} juegos en la librería`);
     console.log(`🕹️ ${systems.length} sistemas disponibles`);
     console.log(`📄 ${CONFIG.GAMES_PER_PAGE} juegos por página`);
+    console.log(`🔑 IDs únicos: sistema-ID (ej: ps3-10, xbox360-10)`);
     console.log(`📂 Covers: Local (covers/) → URL personalizada → Libretro (fallback)`);
 }
 
