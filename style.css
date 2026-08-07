@@ -327,25 +327,8 @@ header {
    GRID DE JUEGOS (tarjetas estilo neon)
    ==================================================== */
 .crypto-grid {
-    display: grid;
-    /* 
-       🟢 auto-fill: Ajusta automáticamente el número de columnas
-       🟢 minmax(280px, 1fr): 
-           - Mínimo 280px (más pequeño que antes 300px, permite más columnas)
-           - Máximo 1fr (ocupa el espacio disponible)
-       🟢 Cambia 280px por un número mayor (ej: 320px) para tarjetas más anchas
-       🟢 Cambia 280px por un número menor (ej: 240px) para más columnas
-    */
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    
-    /* 
-       🟢 gap: Espacio entre tarjetas (horizontal y vertical)
-       🟢 Aumenta a 30px para más separación
-       🟢 Reduce a 16px para tarjetas más juntas
-    */
-    gap: 24px;
-    
-    /* Margen superior e inferior del grid */
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
     margin: 20px 0 40px;
 }
 
