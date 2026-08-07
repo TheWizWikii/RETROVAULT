@@ -324,30 +324,43 @@ header {
 }
 
 /* ====================================================
-   TARJETA DE JUEGO (estilo neon)
+   GRID DE JUEGOS - 5 COLUMNAS
    ==================================================== */
 .crypto-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     /* 
-       🟢 auto-fill: Ajusta automáticamente el número de columnas
-       🟢 minmax(280px, 1fr): 
-           - Mínimo 280px (más pequeño que antes 300px, permite más columnas)
-           - Máximo 1fr (ocupa el espacio disponible)
-       🟢 Cambia 280px por un número mayor (ej: 320px) para tarjetas más anchas
-       🟢 Cambia 280px por un número menor (ej: 240px) para más columnas
+       minmax(210px, 1fr): 
+       - 210px = ancho mínimo para 5 columnas en pantalla grande
+       - 1fr = ocupa el espacio disponible
+       🔹 Si quieres columnas más anchas: aumenta a 230px
+       🔹 Si quieres columnas más estrechas: reduce a 190px
     */
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     
     /* 
-       🟢 gap: Espacio entre tarjetas (horizontal y vertical)
-       🟢 Aumenta a 30px para más separación
-       🟢 Reduce a 16px para tarjetas más juntas
+       gap: 18px = espacio entre tarjetas
+       🔹 Si quieres más separación: aumenta a 22px
+       🔹 Si quieres más juntas: reduce a 14px
     */
-    gap: 24px;
+    gap: 18px;
     
     /* Margen superior e inferior del grid */
     margin: 20px 0 40px;
+}
+
+/* ====================================================
+   TARJETA DE JUEGO (estilo neon)
+   ==================================================== */
+.crypto-card {
+    background: rgba(10, 10, 18, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 204, 255, 0.08);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    cursor: pointer;
+    position: relative;
 }
 
 /* ====================================================
@@ -360,11 +373,6 @@ header {
     left: 0;
     right: 0;
     height: 2px;
-    /* 
-       🟢 Degradado neón: rosa → azul
-       🟢 Cambia #ff0066 por otro color para el neón izquierdo
-       🟢 Cambia #00ccff por otro color para el neón derecho
-    */
     background: linear-gradient(90deg, transparent, #ff0066, #00ccff, transparent);
     opacity: 0.3;
     z-index: 2;
@@ -374,28 +382,18 @@ header {
    EFECTO HOVER (al pasar el ratón)
    ==================================================== */
 .crypto-card:hover {
-    /* 
-       🟢 Eleva la tarjeta -6px al hacer hover
-       🟢 Cambia a -10px para más elevación
-       🟢 Cambia a 0px para sin elevación
-    */
     transform: translateY(-6px);
-    
-    /* Borde más brillante al hacer hover */
     border-color: rgba(255, 0, 102, 0.25);
-    
-    /* Sombra más intensa al hacer hover */
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(255, 0, 102, 0.05);
 }
 
-/* El borde neón se vuelve más brillante al hacer hover */
 .crypto-card:hover::before {
     opacity: 1;
     animation: neonSlide 1.5s ease-in-out infinite;
 }
 
 /* ====================================================
-   ANIMACIÓN DEL BORDE NEÓN (se mueve de izquierda a derecha)
+   ANIMACIÓN DEL BORDE NEÓN
    ==================================================== */
 @keyframes neonSlide {
     0% { background: linear-gradient(90deg, transparent, #ff0066, #00ccff, transparent); }
@@ -404,43 +402,157 @@ header {
 }
 
 /* ====================================================
-   CONTENEDOR DE LA IMAGEN (portada del juego)
+   IMAGEN - MÁS ALARGADA
    ==================================================== */
 .card-image {
     width: 100%;
-    /* 
-       🟢 ALTURA DE LA IMAGEN (más alto = tarjeta más alargada)
-       🟢 220px = altura estándar
-       🟢 280px = más alargada (más imagen, menos texto)
-       🟢 180px = más cuadrada
-    */
-    height: 320px;  /* ← CAMBIADO DE 220px A 280px (más alargada) */
-    
+    height: 270px;  /* ← ANTES 220px, AHORA 270px (más alargada) */
     overflow: hidden;
     position: relative;
     background: rgba(0, 0, 0, 0.4);
 }
 
-/* ====================================================
-   IMAGEN DE LA PORTADA
-   ==================================================== */
 .card-image img {
     width: 100%;
     height: 100%;
-    
-    /* 
-       🟢 object-fit: cover = La imagen cubre todo el espacio (recorta bordes)
-       🟢 object-fit: contain = La imagen se ve COMPLETA (con bordes negros)
-       🟢 object-fit: fill = Estira la imagen (distorsiona)
-    */
-    object-fit: cover;  /* ← Cambia a 'contain' para ver la imagen completa */
-    
+    object-fit: cover;
     transition: transform 0.5s ease;
 }
 
-/* La imagen se agranda ligeramente al hacer hover */
 .crypto-card:hover .card-image img {
     transform: scale(1.05);
+}
+
+/* ====================================================
+   BADGE DEL SISTEMA (etiqueta en la esquina)
+   ==================================================== */
+.card-image .system-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 14px;
+    border-radius: 50px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 3;
+}
+
+/* ====================================================
+   CUERPO DE LA TARJETA (texto debajo de la imagen)
+   ==================================================== */
+.card-body {
+    padding: 14px 16px 18px;
+    background: rgba(10, 10, 18, 0.6);
+}
+
+.card-body h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+    font-family: 'Rajdhani', sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-body .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #8888aa;
+}
+
+.card-body .card-meta .year {
+    color: #666688;
+}
+
+.card-body .card-meta .type {
+    padding: 2px 10px;
+    border-radius: 50px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 0, 102, 0.1);
+    color: #ff0066;
+    border: 1px solid rgba(255, 0, 102, 0.1);
+}
+
+/* ====================================================
+   RESPONSIVE: Pantallas grandes
+   ==================================================== */
+@media (max-width: 1400px) {
+    .crypto-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+    }
+}
+
+/* ====================================================
+   RESPONSIVE: Pantallas medianas
+   ==================================================== */
+@media (max-width: 1200px) {
+    .crypto-grid {
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 14px;
+    }
+    
+    .card-image {
+        height: 240px;
+    }
+}
+
+/* ====================================================
+   RESPONSIVE: Tablets
+   ==================================================== */
+@media (max-width: 768px) {
+    .crypto-grid {
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 12px;
+    }
+    
+    .card-image {
+        height: 200px;
+    }
+    
+    .card-body h3 {
+        font-size: 0.85rem;
+    }
+    
+    .card-body .card-meta {
+        font-size: 0.65rem;
+    }
+}
+
+/* ====================================================
+   RESPONSIVE: Móviles
+   ==================================================== */
+@media (max-width: 480px) {
+    .crypto-grid {
+        grid-template-columns: 1fr;  /* Una sola columna en móvil */
+        gap: 14px;
+    }
+    
+    .card-image {
+        height: 240px;
+    }
+    
+    .card-body h3 {
+        font-size: 1rem;
+        white-space: normal;  /* El título puede ocupar 2 líneas */
+    }
+    
+    .card-body .card-meta {
+        font-size: 0.75rem;
+    }
 }
 
 /* ====================================================
