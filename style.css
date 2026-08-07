@@ -324,27 +324,26 @@ header {
 }
 
 /* ====================================================
-   GRID DE JUEGOS - 5 COLUMNAS
+   GRID DE JUEGOS - 5 COLUMNAS CON TARJETAS GRANDES
    ==================================================== */
 .crypto-grid {
     display: grid;
     /* 
-       minmax(210px, 1fr): 
-       - 210px = ancho mínimo para 5 columnas en pantalla grande
+       minmax(250px, 1fr): 
+       - 250px = ancho mínimo para 5 columnas en pantalla grande
        - 1fr = ocupa el espacio disponible
-       🔹 Si quieres columnas más anchas: aumenta a 230px
-       🔹 Si quieres columnas más estrechas: reduce a 190px
+       🔹 Si quieres columnas más anchas: aumenta a 270px
+       🔹 Si quieres columnas más estrechas: reduce a 230px
     */
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     
     /* 
-       gap: 18px = espacio entre tarjetas
-       🔹 Si quieres más separación: aumenta a 22px
-       🔹 Si quieres más juntas: reduce a 14px
+       gap: 20px = espacio entre tarjetas
+       🔹 Si quieres más separación: aumenta a 24px
+       🔹 Si quieres más juntas: reduce a 16px
     */
-    gap: 18px;
+    gap: 20px;
     
-    /* Margen superior e inferior del grid */
     margin: 20px 0 40px;
 }
 
@@ -364,7 +363,7 @@ header {
 }
 
 /* ====================================================
-   BORDE NEÓN SUPERIOR (efecto de luz en el borde)
+   BORDE NEÓN SUPERIOR
    ==================================================== */
 .crypto-card::before {
     content: '';
@@ -379,7 +378,7 @@ header {
 }
 
 /* ====================================================
-   EFECTO HOVER (al pasar el ratón)
+   EFECTO HOVER
    ==================================================== */
 .crypto-card:hover {
     transform: translateY(-6px);
@@ -402,11 +401,11 @@ header {
 }
 
 /* ====================================================
-   IMAGEN - MÁS ALARGADA
+   IMAGEN - MÁS GRANDE Y ALARGADA
    ==================================================== */
 .card-image {
     width: 100%;
-    height: 270px;  /* ← ANTES 220px, AHORA 270px (más alargada) */
+    height: 320px;  /* ← ANTES 270px, AHORA 320px (más alta) */
     overflow: hidden;
     position: relative;
     background: rgba(0, 0, 0, 0.4);
@@ -421,6 +420,69 @@ header {
 
 .crypto-card:hover .card-image img {
     transform: scale(1.05);
+}
+
+/* ====================================================
+   BADGE DEL SISTEMA
+   ==================================================== */
+.card-image .system-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 14px;
+    border-radius: 50px;
+    font-size: 0.7rem;  /* ← ANTES 0.65rem, AHORA más grande */
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 3;
+}
+
+/* ====================================================
+   CUERPO DE LA TARJETA
+   ==================================================== */
+.card-body {
+    padding: 16px 18px 20px;  /* ← Más espacio interior */
+    background: rgba(10, 10, 18, 0.6);
+}
+
+.card-body h3 {
+    font-size: 1.1rem;  /* ← ANTES 1rem, AHORA más grande */
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+    font-family: 'Rajdhani', sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-body .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;  /* ← ANTES 0.75rem, AHORA más grande */
+    color: #8888aa;
+}
+
+.card-body .card-meta .year {
+    color: #666688;
+}
+
+.card-body .card-meta .type {
+    padding: 2px 12px;
+    border-radius: 50px;
+    font-size: 0.65rem;  /* ← ANTES 0.6rem, AHORA más grande */
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 0, 102, 0.1);
+    color: #ff0066;
+    border: 1px solid rgba(255, 0, 102, 0.1);
 }
 
 /* ====================================================
