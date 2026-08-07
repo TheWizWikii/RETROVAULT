@@ -11,9 +11,10 @@ const CONFIG = {
 };
 
 // ============================================================
-//  MAPEO DE SISTEMAS A LIBRETRO
+//  MAPEO DE SISTEMAS A LIBRETRO (con soporte mayúsculas/minúsculas)
 // ============================================================
 const systemMap = {
+    // Mayúsculas
     'PS3': 'Sony - PlayStation 3',
     'PS2': 'Sony - PlayStation 2',
     'PSP': 'Sony - PlayStation Portable',
@@ -26,50 +27,55 @@ const systemMap = {
     'GAMEBOY COLOR': 'Nintendo - Game Boy Color',
     'SEGA GENESIS': 'Sega - Mega Drive - Genesis',
     'DREAMCAST': 'Sega - Dreamcast',
-    'SATURN': 'Sega - Saturn'
+    'SATURN': 'Sega - Saturn',
+    // Minúsculas (para compatibilidad)
+    'ps3': 'Sony - PlayStation 3',
+    'ps2': 'Sony - PlayStation 2',
+    'psp': 'Sony - PlayStation Portable',
+    'ps1': 'Sony - PlayStation',
+    'nes': 'Nintendo - Nintendo Entertainment System',
+    'snes': 'Nintendo - Super Nintendo Entertainment System',
+    'n64': 'Nintendo - Nintendo 64',
+    'gameboy': 'Nintendo - Game Boy',
+    'gameboy advance': 'Nintendo - Game Boy Advance',
+    'gameboy color': 'Nintendo - Game Boy Color',
+    'sega genesis': 'Sega - Mega Drive - Genesis',
+    'dreamcast': 'Sega - Dreamcast',
+    'saturn': 'Sega - Saturn'
 };
 
 // ============================================================
-//  FUNCIÓN PARA PORTADAS (SOPORTE TOTAL)
+//  FUNCIÓN PARA PORTADAS (LOCAL + LIBRETRO)
 // ============================================================
 function getCoverUrl(game) {
     const systemName = game.sistema || game.system || '';
-    const systemFolder = systemMap[systemName] || systemName;
     const systemKey = systemName.toLowerCase();
+    const systemFolder = systemMap[systemName] || systemMap[systemKey] || systemName;
     
-    // ============================================
-    // 1. URL PERSONALIZADA (completa)
-    // ============================================
+    // 1. URL personalizada
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
     
-    // ============================================
-    // 2. RUTA LOCAL COMPLETA (covers/ps3/nombre.png)
-    // ============================================
+    // 2. Ruta local completa
     if (game.cover && game.cover.startsWith('covers/')) {
         return game.cover;
     }
     
-    // ============================================
-    // 3. NOMBRE DE ARCHIVO (solo el nombre.png)
-    //    Busca en covers/[sistema]/nombre.png
-    // ============================================
+    // 3. Nombre de archivo (busca en covers/[sistema]/)
     if (game.cover && (game.cover.endsWith('.png') || game.cover.endsWith('.webp'))) {
         return `covers/${systemKey}/${game.cover}`;
     }
     
-    // ============================================
-    // 4. FALLBACK: LIBRETRO AUTOMÁTICO
-    //    Usa el título del juego
-    // ============================================
+    // 4. FALLBACK: Libretro
     const title = game.titulo || game.title || '';
     const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
-    return `https://thumbnails.libretro.com/${encodeURIComponent(systemFolder)}/Named_Boxarts/${encodeURIComponent(cleanTitle)}.png`;
+    const encodedFolder = encodeURIComponent(systemFolder);
+    const encodedTitle = encodeURIComponent(cleanTitle);
+    return `https://thumbnails.libretro.com/${encodedFolder}/Named_Boxarts/${encodedTitle}.png`;
 }
 
 function getCoverWithFallback(game) {
-    // Si tiene cover personalizado, devolverlo directamente
     if (game.cover && (game.cover.startsWith('http') || game.cover.startsWith('covers/'))) {
         return game.cover;
     }
@@ -298,14 +304,21 @@ function removeSystem(sys) {
 }
 
 // ============================================================
-//  FILTRAR JUEGOS
+//  FILTRAR JUEGOS (CORREGIDO - IGNORA MAYÚSCULAS/MINÚSCULAS)
 // ============================================================
 function filterGames() {
     const query = searchQuery.toLowerCase().trim();
     const system = currentSystem;
 
     filteredGames = games.filter(game => {
-        if (system !== 'all' && game.sistema !== system && game.system !== system) return false;
+        // Normalizar: comparar en minúsculas
+        const gameSystem = (game.sistema || game.system || '').toLowerCase();
+        const filterSystem = system.toLowerCase();
+        
+        // Filtro por sistema
+        if (system !== 'all' && gameSystem !== filterSystem) return false;
+        
+        // Filtro por búsqueda
         if (query) {
             const title = (game.titulo || game.title || '').toLowerCase();
             const systemName = (game.sistema || game.system || '').toLowerCase();
