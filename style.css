@@ -414,7 +414,7 @@ header {
        🟢 280px = más alargada (más imagen, menos texto)
        🟢 180px = más cuadrada
     */
-    height: 280px;  /* ← CAMBIADO DE 220px A 280px (más alargada) */
+    height: 320px;  /* ← CAMBIADO DE 220px A 280px (más alargada) */
     
     overflow: hidden;
     position: relative;
