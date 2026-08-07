@@ -62,7 +62,7 @@ const systemMap = {
 };
 
 // ============================================================
-//  FUNCIÓN PARA PORTADAS
+//  FUNCIÓN PARA PORTADAS (CORREGIDA)
 // ============================================================
 function getCoverUrl(game) {
     const systemName = game.sistema || game.system || '';
@@ -70,24 +70,28 @@ function getCoverUrl(game) {
     const title = game.titulo || game.title || '';
     const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
     
+    // Si tiene cover personalizado (URL directa)
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
     
-    if (game.cover && game.cover.includes('covers/')) {
-        const fileName = game.cover.split('/').pop().replace('.png', '').replace('.webp', '');
-        return `https://thumbnails.libretro.com/${systemFolder}/Named_Boxarts/${fileName}.png`;
+    // Si tiene cover con nombre de archivo (ej: "The Last of Us (USA).png")
+    if (game.cover && game.cover.endsWith('.png')) {
+        const fileName = game.cover.replace('.png', '').replace('.webp', '');
+        return `https://thumbnails.libretro.com/${encodeURIComponent(systemFolder)}/Named_Boxarts/${encodeURIComponent(fileName)}.png`;
     }
     
-    return `https://thumbnails.libretro.com/${systemFolder}/Named_Boxarts/${cleanTitle}.png`;
+    // Intentar con el título limpio
+    const encodedTitle = encodeURIComponent(cleanTitle);
+    return `https://thumbnails.libretro.com/${encodeURIComponent(systemFolder)}/Named_Boxarts/${encodedTitle}.png`;
 }
 
 function getCoverWithFallback(game) {
-    const url = getCoverUrl(game);
+    // Si tiene cover personalizado, usarlo
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
-    return url;
+    return getCoverUrl(game);
 }
 
 // ============================================================
@@ -103,10 +107,16 @@ let loadedSystems = new Set();
 
 async function loadGamesFromSystem(system) {
     const systemKey = system.toLowerCase();
-    const url = `${CONFIG.DATA_PATH}${systemKey}.json`;
+    const url = `${CONFIG.DATA_PATH}${systemKey}.json?t=${Date.now()}`;
     
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            cache: 'no-store',
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+            }
+        });
         if (!response.ok) {
             console.warn(`⚠️ No se pudo cargar ${systemKey}.json`);
             return [];
@@ -167,11 +177,6 @@ async function loadAllGames() {
         isLoading = false;
     }
 }
-
-// ============================================================
-//  ESTADO
-// ============================================================
-let favoriteGames = new Set();
 
 // ============================================================
 //  DOM REFS
@@ -290,7 +295,6 @@ function addSystem() {
     updateSystemSelect();
     renderSystemChips();
     renderSystemList();
-    // Recargar juegos
     loadAllGames().then(() => {
         filterGames();
         renderSystemChips();
@@ -342,7 +346,7 @@ function filterGames() {
 }
 
 // ============================================================
-//  RENDERIZAR JUEGOS
+//  RENDERIZAR JUEGOS (CORREGIDO - TARJETAS CLICABLES)
 // ============================================================
 function renderGames() {
     if (isLoading) {
@@ -381,7 +385,7 @@ function renderGames() {
         const gameId = game.id || `game-${Math.random().toString(36).substr(2, 9)}`;
         
         html += `
-            <div class="crypto-card" data-id="${gameId}" onclick="openModal('${gameId}')">
+            <div class="crypto-card" data-id="${gameId}" onclick="window.openModal('${gameId}')">
                 <div class="card-image">
                     <img src="${coverUrl}" 
                          alt="${title}" 
@@ -440,8 +444,11 @@ function getSystemColor(system) {
 //  MODAL DE DETALLE
 // ============================================================
 function openModal(id) {
-    const game = games.find(g => (g.id || '') === id);
-    if (!game) return;
+    const game = games.find(g => (g.id || '').toString() === id.toString());
+    if (!game) {
+        console.warn('Juego no encontrado:', id);
+        return;
+    }
 
     const systemName = game.sistema || game.system || 'Desconocido';
     const systemColor = getSystemColor(systemName);
@@ -553,7 +560,6 @@ function importBackup(file) {
                 updateSystemSelect();
                 renderSystemChips();
                 renderSystemList();
-                // Recargar juegos con los nuevos sistemas
                 loadAllGames().then(() => {
                     filterGames();
                     updateGameCount();
@@ -645,7 +651,7 @@ function showSuggestions(query) {
     suggestionsEl.querySelectorAll('div').forEach(el => {
         el.addEventListener('click', function() {
             const id = this.dataset.id;
-            const game = games.find(g => (g.id || '') === id);
+            const game = games.find(g => (g.id || '').toString() === id.toString());
             if (game) {
                 const title = game.titulo || game.title || '';
                 searchInput.value = title;
@@ -698,7 +704,15 @@ async function init() {
     filterGames();
     updateGameCount();
     
-    window.openModal = openModal;
+    // Exponer openModal globalmente para que funcione desde el onclick
+    window.openModal = function(id) {
+        const game = games.find(g => (g.id || '').toString() === id.toString());
+        if (!game) {
+            console.warn('Juego no encontrado:', id);
+            return;
+        }
+        openModal(id);
+    };
 
     console.log('🎮 Retro Game Vault cargado');
     console.log(`📚 ${games.length} juegos en la librería`);
