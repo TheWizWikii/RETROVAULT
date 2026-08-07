@@ -30,28 +30,47 @@ const systemMap = {
 };
 
 // ============================================================
-//  FUNCIÓN PARA PORTADAS
+//  FUNCIÓN PARA PORTADAS (SOPORTE TOTAL)
 // ============================================================
 function getCoverUrl(game) {
     const systemName = game.sistema || game.system || '';
     const systemFolder = systemMap[systemName] || systemName;
+    const systemKey = systemName.toLowerCase();
     
+    // ============================================
+    // 1. URL PERSONALIZADA (completa)
+    // ============================================
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
     
-    if (game.cover && game.cover.endsWith('.png')) {
-        const fileName = game.cover.replace('.png', '').replace('.webp', '');
-        return `https://thumbnails.libretro.com/${encodeURIComponent(systemFolder)}/Named_Boxarts/${encodeURIComponent(fileName)}.png`;
+    // ============================================
+    // 2. RUTA LOCAL COMPLETA (covers/ps3/nombre.png)
+    // ============================================
+    if (game.cover && game.cover.startsWith('covers/')) {
+        return game.cover;
     }
     
+    // ============================================
+    // 3. NOMBRE DE ARCHIVO (solo el nombre.png)
+    //    Busca en covers/[sistema]/nombre.png
+    // ============================================
+    if (game.cover && (game.cover.endsWith('.png') || game.cover.endsWith('.webp'))) {
+        return `covers/${systemKey}/${game.cover}`;
+    }
+    
+    // ============================================
+    // 4. FALLBACK: LIBRETRO AUTOMÁTICO
+    //    Usa el título del juego
+    // ============================================
     const title = game.titulo || game.title || '';
     const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
     return `https://thumbnails.libretro.com/${encodeURIComponent(systemFolder)}/Named_Boxarts/${encodeURIComponent(cleanTitle)}.png`;
 }
 
 function getCoverWithFallback(game) {
-    if (game.cover && game.cover.startsWith('http')) {
+    // Si tiene cover personalizado, devolverlo directamente
+    if (game.cover && (game.cover.startsWith('http') || game.cover.startsWith('covers/'))) {
         return game.cover;
     }
     return getCoverUrl(game);
@@ -301,7 +320,7 @@ function filterGames() {
 }
 
 // ============================================================
-//  RENDERIZAR JUEGOS (CON CLIC CORREGIDO)
+//  RENDERIZAR JUEGOS
 // ============================================================
 function renderGames() {
     if (isLoading) {
@@ -339,7 +358,6 @@ function renderGames() {
         const type = game.type || 'ROM';
         const gameId = game.id || `game-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Guardamos el ID en el elemento para poder recuperarlo después
         html += `
             <div class="crypto-card" data-game-id="${gameId}">
                 <div class="card-image">
@@ -361,7 +379,6 @@ function renderGames() {
     }
     grid.innerHTML = html;
 
-    // AÑADIR EVENTOS CLICK DESPUÉS DE RENDERIZAR
     document.querySelectorAll('.crypto-card').forEach(card => {
         card.addEventListener('click', function() {
             const gameId = this.dataset.gameId;
@@ -659,6 +676,7 @@ async function init() {
     console.log('🎮 Retro Game Vault cargado');
     console.log(`📚 ${games.length} juegos en la librería`);
     console.log(`🕹️ ${systems.length} sistemas disponibles`);
+    console.log(`📂 Covers: Local (covers/) → URL personalizada → Libretro (fallback)`);
 }
 
 init();
