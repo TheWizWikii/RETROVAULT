@@ -46,38 +46,35 @@ const systemMap = {
     'xbox 360': 'Microsoft - Xbox 360'
 };
 
-// ============================================================
-//  FUNCIÓN PARA PORTADAS
-// ============================================================
 function getCoverUrl(game) {
     const systemName = game.sistema || game.system || '';
     const systemKey = systemName.toLowerCase();
     const systemFolder = systemMap[systemName] || systemMap[systemKey] || systemName;
     
+    // 1. Si tiene URL completa, usarla
     if (game.cover && game.cover.startsWith('http')) {
         return game.cover;
     }
     
+    // 2. Si tiene ruta local completa, usarla
     if (game.cover && game.cover.startsWith('covers/')) {
         return game.cover;
     }
     
+    // 3. Si tiene nombre de archivo (termina en .png o .webp)
     if (game.cover && (game.cover.endsWith('.png') || game.cover.endsWith('.webp'))) {
-        return `covers/${systemKey}/${game.cover}`;
+        // CONSTRUIR URL DE LIBRETRO CON EL NOMBRE EXACTO
+        const encodedFolder = encodeURIComponent(systemFolder);
+        const encodedFileName = encodeURIComponent(game.cover);
+        return `https://thumbnails.libretro.com/${encodedFolder}/Named_Boxarts/${encodedFileName}`;
     }
     
+    // 4. Fallback: usar el título del juego
     const title = game.titulo || game.title || '';
     const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
     const encodedFolder = encodeURIComponent(systemFolder);
     const encodedTitle = encodeURIComponent(cleanTitle);
     return `https://thumbnails.libretro.com/${encodedFolder}/Named_Boxarts/${encodedTitle}.png`;
-}
-
-function getCoverWithFallback(game) {
-    if (game.cover && (game.cover.startsWith('http') || game.cover.startsWith('covers/'))) {
-        return game.cover;
-    }
-    return getCoverUrl(game);
 }
 
 // ============================================================
