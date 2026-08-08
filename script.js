@@ -76,34 +76,29 @@ function getCoverUrl(game) {
     const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
     const encodedFolder = encodeURIComponent(systemFolder);
     
-    // Generar múltiples variaciones del nombre
     const variations = [
-        cleanTitle,                                                       // Original
-        cleanTitle.replace(/[\(\)\-]/g, '').trim(),                       // Sin paréntesis ni guiones
-        cleanTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim(),                  // Solo letras y números
-        cleanTitle.replace(/\b(The|A|An)\b/g, '').trim(),                 // Quitar "The", "A", "An"
-        cleanTitle.replace(/\b(USA|Europe|Japan|World|Asia|Korea)\b/g, '').trim(), // Quitar regiones
-        cleanTitle.replace(/\b(En|Fr|De|Es|It|Nl|Pt|Sv|No|Da|Fi|Zh|Ko|Pl|Ru|Tr)\b/g, '').trim(), // Quitar idiomas
-        cleanTitle.replace(/\b(Rev|v|Beta|Proto|Demo|Sample|Alt)\b/g, '').trim(), // Quitar versiones
-        cleanTitle.replace(/\b(En,Fr,De,Es,It|En,Fr,De,Es|En,Fr,Es|En,Fr,De|En,Fr|En)\b/g, '').trim() // Quitar combinaciones de idiomas
+        cleanTitle,
+        cleanTitle.replace(/[\(\)\-]/g, '').trim(),
+        cleanTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim(),
+        cleanTitle.replace(/\b(The|A|An)\b/g, '').trim(),
+        cleanTitle.replace(/\b(USA|Europe|Japan|World|Asia|Korea)\b/g, '').trim(),
+        cleanTitle.replace(/\b(En|Fr|De|Es|It|Nl|Pt|Sv|No|Da|Fi|Zh|Ko|Pl|Ru|Tr)\b/g, '').trim(),
+        cleanTitle.replace(/\b(Rev|v|Beta|Proto|Demo|Sample|Alt)\b/g, '').trim(),
+        cleanTitle.replace(/\b(En,Fr,De,Es,It|En,Fr,De,Es|En,Fr,Es|En,Fr,De|En,Fr|En)\b/g, '').trim()
     ];
     
-    // Eliminar duplicados y vacíos
     const uniqueVariations = [...new Set(variations.filter(v => v.length > 0))];
     
-    // Si hay variaciones, devolver la primera (el onerror probará las demás)
     if (uniqueVariations.length > 0) {
         const encodedTitle = encodeURIComponent(uniqueVariations[0]);
         return `https://thumbnails.libretro.com/${encodedFolder}/Named_Boxarts/${encodedTitle}.png`;
     }
     
-    // Fallback final
     const encodedTitle = encodeURIComponent(cleanTitle);
     return `https://thumbnails.libretro.com/${encodedFolder}/Named_Boxarts/${encodedTitle}.png`;
 }
 
 function getCoverWithFallback(game) {
-    // Si tiene cover personalizado (URL o ruta local), devolverlo directamente
     if (game.cover && (game.cover.startsWith('http') || game.cover.startsWith('covers/'))) {
         return game.cover;
     }
@@ -120,6 +115,11 @@ let currentSystem = 'all';
 let searchQuery = '';
 let isLoading = false;
 let loadedSystems = new Set();
+
+// ============================================================
+//  ORDENACIÓN
+// ============================================================
+let sortAlphabetically = false;
 
 // ============================================================
 //  PAGINACIÓN
@@ -215,9 +215,6 @@ async function loadGamesFromSystem(system) {
     }
 }
 
-// ============================================================
-//  PROCESAR DATOS CON IDs ÚNICOS GLOBALES
-// ============================================================
 function processGameData(data, system) {
     if (data.juegos && Array.isArray(data.juegos)) {
         const systemKey = system.toLowerCase().replace(/\s/g, '');
@@ -288,20 +285,13 @@ const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
 const systemSelect = document.getElementById('systemSelect');
 const systemChips = document.getElementById('systemChips');
-const addSystemSettingsBtn = document.getElementById('addSystemSettingsBtn');
 const refreshBtn = document.getElementById('refreshBtn');
-const settingsBtn = document.getElementById('settingsBtn');
-const settingsModal = document.getElementById('settingsModal');
-const settingsClose = document.getElementById('settingsClose');
-const systemList = document.getElementById('systemList');
-const exportBtn = document.getElementById('exportBtn');
-const importBtn = document.getElementById('importBtn');
-const importFile = document.getElementById('importFile');
 const gameCount = document.getElementById('gameCount');
 const suggestionsEl = document.getElementById('suggestions');
 const modal = document.getElementById('gameModal');
 const modalBody = document.getElementById('modalBody');
 const modalClose = document.querySelector('.modal-close');
+const sortCheckbox = document.getElementById('sortAlphabetically');
 
 function createPaginationContainer() {
     let container = document.getElementById('pagination');
@@ -382,76 +372,14 @@ function renderSystemChips() {
     });
 }
 
-function renderSystemList() {
-    systemList.innerHTML = '';
-    systems.sort().forEach(sys => {
-        const item = document.createElement('div');
-        item.className = 'system-list-item';
-        item.innerHTML = `
-            ${sys}
-            <span class="delete-system" data-system="${sys}">✕</span>
-        `;
-        item.querySelector('.delete-system').addEventListener('click', function() {
-            removeSystem(this.dataset.system);
-        });
-        systemList.appendChild(item);
-    });
-}
-
 // ============================================================
-//  AÑADIR / ELIMINAR SISTEMAS
-// ============================================================
-function addSystem() {
-    const newSystem = prompt('🎮 Introduce el nombre del nuevo sistema (ej: SEGA SATURN):');
-    if (!newSystem || newSystem.trim() === '') return;
-    const sys = newSystem.trim().toUpperCase();
-    if (systems.includes(sys)) {
-        alert(`⚠️ El sistema "${sys}" ya existe.`);
-        return;
-    }
-    systems.push(sys);
-    saveSystems();
-    updateSystemSelect();
-    renderSystemChips();
-    renderSystemList();
-    loadAllGames().then(() => {
-        currentPage = 1;
-        filterGames();
-        renderSystemChips();
-        updateGameCount();
-    });
-}
-
-function removeSystem(sys) {
-    if (systems.length <= 1) {
-        alert('⚠️ Debes tener al menos un sistema.');
-        return;
-    }
-    if (!confirm(`¿Eliminar sistema "${sys}" y sus juegos?`)) return;
-    systems = systems.filter(s => s !== sys);
-    loadedSystems.delete(sys);
-    saveSystems();
-    if (currentSystem === sys) {
-        currentSystem = 'all';
-        systemSelect.value = 'all';
-    }
-    games = games.filter(g => g.sistema !== sys && g.system !== sys);
-    currentPage = 1;
-    updateSystemSelect();
-    renderSystemChips();
-    renderSystemList();
-    filterGames();
-    updateGameCount();
-}
-
-// ============================================================
-//  FILTRAR JUEGOS
+//  FILTRAR JUEGOS (CON ORDENACIÓN)
 // ============================================================
 function filterGames() {
     const query = searchQuery.toLowerCase().trim();
     const system = currentSystem;
 
-    filteredGames = games.filter(game => {
+    let filtered = games.filter(game => {
         const gameSystem = (game.sistema || game.system || '').toLowerCase();
         const filterSystem = system.toLowerCase();
         
@@ -466,6 +394,16 @@ function filterGames() {
         return true;
     });
 
+    // ORDENAR ALFABÉTICAMENTE si el checkbox está marcado
+    if (sortAlphabetically) {
+        filtered.sort((a, b) => {
+            const titleA = (a.titulo || a.title || '').toLowerCase();
+            const titleB = (b.titulo || b.title || '').toLowerCase();
+            return titleA.localeCompare(titleB);
+        });
+    }
+
+    filteredGames = filtered;
     currentPage = 1;
     renderGames();
     renderPagination();
@@ -640,85 +578,6 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ============================================================
-//  MODAL DE AJUSTES
-// ============================================================
-settingsBtn.addEventListener('click', function() {
-    renderSystemList();
-    settingsModal.classList.add('show');
-    document.body.style.overflow = 'hidden';
-});
-
-settingsClose.addEventListener('click', function() {
-    settingsModal.classList.remove('show');
-    document.body.style.overflow = '';
-});
-
-settingsModal.addEventListener('click', function(e) {
-    if (e.target === this) {
-        settingsModal.classList.remove('show');
-        document.body.style.overflow = '';
-    }
-});
-
-addSystemSettingsBtn.addEventListener('click', addSystem);
-
-// ============================================================
-//  BACKUP
-// ============================================================
-function exportBackup() {
-    const data = {
-        systems: systems,
-        timestamp: new Date().toISOString(),
-        version: '1.0'
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `retro-vault-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function importBackup(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            if (data.systems && Array.isArray(data.systems) && data.systems.length > 0) {
-                systems = data.systems;
-                saveSystems();
-                updateSystemSelect();
-                renderSystemChips();
-                renderSystemList();
-                loadAllGames().then(() => {
-                    currentPage = 1;
-                    filterGames();
-                    updateGameCount();
-                    alert('✅ Backup importado correctamente.');
-                });
-            } else {
-                alert('❌ Archivo de backup inválido.');
-            }
-        } catch (error) {
-            alert('❌ Error al leer el archivo: ' + error.message);
-        }
-    };
-    reader.readAsText(file);
-}
-
-exportBtn.addEventListener('click', exportBackup);
-importBtn.addEventListener('click', function() {
-    importFile.click();
-});
-importFile.addEventListener('change', function(e) {
-    if (this.files && this.files[0]) {
-        importBackup(this.files[0]);
-    }
-    this.value = '';
-});
-
-// ============================================================
 //  BÚSQUEDA
 // ============================================================
 let searchTimeout = null;
@@ -746,6 +605,14 @@ searchInput.addEventListener('keydown', function(e) {
 searchBtn.addEventListener('click', function() {
     searchQuery = searchInput.value.trim();
     suggestionsEl.classList.remove('show');
+    filterGames();
+});
+
+// ============================================================
+//  ORDENACIÓN ALFABÉTICA (checkbox)
+// ============================================================
+sortCheckbox.addEventListener('change', function() {
+    sortAlphabetically = this.checked;
     filterGames();
 });
 
@@ -820,6 +687,8 @@ refreshBtn.addEventListener('click', function() {
     currentSystem = 'all';
     systemSelect.value = 'all';
     currentPage = 1;
+    sortCheckbox.checked = false;
+    sortAlphabetically = false;
     suggestionsEl.classList.remove('show');
     renderSystemChips();
     filterGames();
@@ -834,7 +703,6 @@ async function init() {
     loadSystems();
     updateSystemSelect();
     renderSystemChips();
-    renderSystemList();
     await loadAllGames();
     filterGames();
     updateGameCount();
@@ -847,6 +715,7 @@ async function init() {
     console.log(`📄 ${CONFIG.GAMES_PER_PAGE} juegos por página`);
     console.log(`🔑 IDs únicos: sistema-ID (ej: ps3-10, xbox360-10)`);
     console.log(`📂 Covers: Local (covers/) → URL personalizada → Libretro (fallback)`);
+    console.log(`🔤 Orden alfabético: ${sortAlphabetically ? 'activado' : 'desactivado'}`);
 }
 
 init();
