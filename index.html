@@ -19,9 +19,6 @@
                 <h1>RETRO<span>VAULT</span></h1>
             </div>
             <div class="header-controls">
-                <button id="settingsBtn" class="btn-neon btn-settings" title="Ajustes">
-                    <i class="fas fa-cog"></i>
-                </button>
                 <button id="refreshBtn" class="btn-neon" title="Resetear filtros">
                     <i class="fas fa-undo-alt"></i> Resetear
                 </button>
@@ -41,6 +38,10 @@
                 <select id="systemSelect" class="system-select">
                     <option value="all">🎮 Todos los sistemas</option>
                 </select>
+                <label class="sort-checkbox">
+                    <input type="checkbox" id="sortAlphabetically" />
+                    <span>🔤 A-Z</span>
+                </label>
             </div>
         </section>
 
@@ -58,42 +59,6 @@
             <div class="modal-content">
                 <span class="modal-close">&times;</span>
                 <div id="modalBody"></div>
-            </div>
-        </div>
-
-        <!-- ===== MODAL DE AJUSTES ===== -->
-        <div id="settingsModal" class="modal">
-            <div class="modal-content settings-modal">
-                <span class="modal-close" id="settingsClose">&times;</span>
-                <h2 style="font-family:'Orbitron',sans-serif;color:#00ccff;margin-bottom:20px;">
-                    <i class="fas fa-cog"></i> Ajustes
-                </h2>
-                
-                <div class="settings-section">
-                    <h3>📂 Gestión de Sistemas</h3>
-                    <div class="settings-row">
-                        <button id="addSystemSettingsBtn" class="btn-neon btn-system">
-                            <i class="fas fa-plus-circle"></i> Añadir Sistema
-                        </button>
-                    </div>
-                    <div id="systemList" class="system-list"></div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>💾 Backup & Restauración</h3>
-                    <div class="settings-row">
-                        <button id="exportBtn" class="btn-neon btn-export">
-                            <i class="fas fa-download"></i> Exportar Backup
-                        </button>
-                        <button id="importBtn" class="btn-neon btn-import">
-                            <i class="fas fa-upload"></i> Importar Backup
-                        </button>
-                        <input type="file" id="importFile" accept=".json" style="display:none;" />
-                    </div>
-                    <p style="color:#666;font-size:0.8rem;margin-top:8px;">
-                        Exporta todos tus sistemas y configuración para restaurarlos en otro dispositivo.
-                    </p>
-                </div>
             </div>
         </div>
 
