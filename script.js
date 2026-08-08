@@ -47,7 +47,7 @@ const systemMap = {
 };
 
 // ============================================================
-//  FUNCIÓN PARA PORTADAS (CORREGIDA)
+//  FUNCIÓN PARA PORTADAS (CON VARIACIONES DE NOMBRE)
 // ============================================================
 function getCoverUrl(game) {
     const systemName = game.sistema || game.system || '';
@@ -66,16 +66,38 @@ function getCoverUrl(game) {
     
     // 3. Si tiene nombre de archivo (termina en .png o .webp)
     if (game.cover && (game.cover.endsWith('.png') || game.cover.endsWith('.webp'))) {
-        // CONSTRUIR URL DE LIBRETRO CON EL NOMBRE EXACTO
         const encodedFolder = encodeURIComponent(systemFolder);
         const encodedFileName = encodeURIComponent(game.cover);
         return `https://thumbnails.libretro.com/${encodedFolder}/Named_Boxarts/${encodedFileName}`;
     }
     
-    // 4. Fallback: usar el título del juego
+    // 4. Generar variaciones del título para Libretro
     const title = game.titulo || game.title || '';
     const cleanTitle = title.replace(/[:\/\\*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
     const encodedFolder = encodeURIComponent(systemFolder);
+    
+    // Generar múltiples variaciones del nombre
+    const variations = [
+        cleanTitle,                                                       // Original
+        cleanTitle.replace(/[\(\)\-]/g, '').trim(),                       // Sin paréntesis ni guiones
+        cleanTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim(),                  // Solo letras y números
+        cleanTitle.replace(/\b(The|A|An)\b/g, '').trim(),                 // Quitar "The", "A", "An"
+        cleanTitle.replace(/\b(USA|Europe|Japan|World|Asia|Korea)\b/g, '').trim(), // Quitar regiones
+        cleanTitle.replace(/\b(En|Fr|De|Es|It|Nl|Pt|Sv|No|Da|Fi|Zh|Ko|Pl|Ru|Tr)\b/g, '').trim(), // Quitar idiomas
+        cleanTitle.replace(/\b(Rev|v|Beta|Proto|Demo|Sample|Alt)\b/g, '').trim(), // Quitar versiones
+        cleanTitle.replace(/\b(En,Fr,De,Es,It|En,Fr,De,Es|En,Fr,Es|En,Fr,De|En,Fr|En)\b/g, '').trim() // Quitar combinaciones de idiomas
+    ];
+    
+    // Eliminar duplicados y vacíos
+    const uniqueVariations = [...new Set(variations.filter(v => v.length > 0))];
+    
+    // Si hay variaciones, devolver la primera (el onerror probará las demás)
+    if (uniqueVariations.length > 0) {
+        const encodedTitle = encodeURIComponent(uniqueVariations[0]);
+        return `https://thumbnails.libretro.com/${encodedFolder}/Named_Boxarts/${encodedTitle}.png`;
+    }
+    
+    // Fallback final
     const encodedTitle = encodeURIComponent(cleanTitle);
     return `https://thumbnails.libretro.com/${encodedFolder}/Named_Boxarts/${encodedTitle}.png`;
 }
